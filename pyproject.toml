@@ -1,0 +1,47 @@
+[tool]
+[tool.poetry]
+name = "euplexer"
+version = "0.1.0"
+homepage = "https://github.com/ghxm/euplexer"
+description = "Top-level package for euplexer."
+authors = ["Maximilian Haag <maximilian.haag@gsi.uni-muenchen.de>"]
+readme = "README.rst"
+license =  "MIT"
+classifiers=[
+    'Development Status :: 2 - Pre-Alpha',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: MIT License',
+    'Natural Language :: English',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+]
+packages = [
+    { include = "euplexer" },
+    { include = "tests", format = "sdist" },
+]
+
+[tool.poetry.dependencies]
+python = "*"
+click = "*"
+
+[tool.poetry.dev-dependencies]
+bumpversion = "*"
+coverage = "*"
+flake8 = "*"
+invoke = "*"
+isort = "*"
+pylint = "*"
+pytest = "*"
+sphinx = "*"
+tox = "*"
+yapf = "*"
+
+[tool.poetry.scripts]
+euplexer = 'euplexer.cli:main'
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
