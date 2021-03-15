@@ -14,7 +14,6 @@ class Elements:
             Doc.set_extension("article_elements", default = None)
 
         if not Doc.has_extension("parts"):
-
             self.EuplexStructure = structure.Structure()
 
         # Set Span-level element extensions
@@ -234,25 +233,36 @@ def article_elements(doc_article):
 
         par_start_matches = [m for m in re.finditer(euplexre.elements['article_num_paragraph'], article.text, flags=re.MULTILINE)]
 
+        unnum_pars = False
+
         if len(par_start_matches) == 0:
             par_start_matches = [ma for ma in
                                         re.finditer (euplexre.elements['article_unnum_paragraph'], article.text,
                                                      flags=re.MULTILINE|re.DOTALL)]
+            unnum_pars = True
 
         par_list = []
 
         for i, m in enumerate (par_start_matches, start=0):
 
             # match text of entire article
-            par_start = m.start ()
+            if unnum_pars and len(m.groups())>0:
+                par_start = m.start(1)
+            else:
+                par_start = m.start ()
+
+
 
             if i < len (par_start_matches) - 1:
-                par_end = par_start_matches[i + 1].start ()
+                if unnum_pars and len (m.groups ()) > 0:
+                    par_end = par_start_matches[i + 1].start (1)
+                else:
+                    par_end = par_start_matches[i + 1].start ()
             else:
                 par_end = len (article.text)
 
             if isinstance (article, Doc):
-                par_span = article.char_span.char_span (par_start, par_end, alignment_mode="expand")
+                par_span = article.char_span (par_start, par_end, alignment_mode="expand")
             else:
                 par_span = article[
                                utils.char_to_token (par_start, par_char_token):utils.char_to_token (par_end,
@@ -299,7 +309,7 @@ def article_elements(doc_article):
                 subpar_end = len (par.text)
 
             if isinstance (par, Doc):
-                subpar_span = par.char_span.char_span (subpar_start, subpar_end, alignment_mode="expand")
+                subpar_span = par.char_span (subpar_start, subpar_end, alignment_mode="expand")
             else:
                 subpar_span = par[
                                utils.char_to_token (subpar_start, subpar_char_token):utils.char_to_token (subpar_end,
@@ -344,7 +354,7 @@ def article_elements(doc_article):
                 point_end = len (subpar.text)
 
             if isinstance (subpar, Doc):
-                point_span = subpar.char_span.char_span (point_start, point_end, alignment_mode="expand")
+                point_span = subpar.char_span (point_start, point_end, alignment_mode="expand")
             else:
                 point_span = subpar[
                                utils.char_to_token (point_start, point_char_token):utils.char_to_token (point_end,
@@ -387,7 +397,7 @@ def article_elements(doc_article):
                 indent_end = len (subpar.text)
 
             if isinstance (subpar, Doc):
-                indent_span = subpar.char_span.char_span (indent_start, indent_end, alignment_mode="expand")
+                indent_span = subpar.char_span (indent_start, indent_end, alignment_mode="expand")
             else:
                 indent_span = subpar[
                                utils.char_to_token (indent_start, indent_char_token):utils.char_to_token (indent_end,

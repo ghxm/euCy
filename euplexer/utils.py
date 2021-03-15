@@ -44,7 +44,10 @@ def chars_to_tokens_dict(doc, input = "as_ref", output = "as_ref"):
 
     chars_to_tokens = {}
 
-    if isinstance(doc, Span):
+    if isinstance(doc, Span) and input == "doc":
+        doc = doc.doc
+        char_offset = 0
+    elif isinstance(doc, Span) and input == "as_ref":
         input = "span"
         char_offset = doc.start_char
     else:
@@ -106,3 +109,33 @@ def _part_argument_check(argument, part):
         return argument
     else:
         raise TypeError(str(type(argument)) + " type not supported. Please pass a Doc, Span or Structure object.")
+
+
+def get_sentences(doclike, min_sen_length):
+
+    if isinstance(doclike, Doc):
+
+        return[sent for sent in doclike.sents if len(sent.text.strip()) > min_sen_length]
+
+    elif isinstance(doclike, Span):
+        # get all sentences within
+       return [sent for sent in doclike.doc.sents if sent.start >= doclike.start and (sent.end<= doclike.end or sent.start <= doclike.end) if len(sent.text.strip()) > min_sen_length]
+    else:
+        raise ValueError("Pleanse supply a Doc or Span object.")
+
+
+def get_n_tokens(n, token, direction="left"):
+
+    if direction == "left":
+        lower = token.i - n
+        upper = token.i
+    else:
+        lower = token.i
+        upper = token.i + n
+    yield [tok for tok in token.doc if tok.i in  range(lower, upper)]
+
+def get_n_left(n, token):
+    return get_n_tokens(n, token, direction="left")
+
+def get_n_right(n, token):
+    return get_n_tokens(n, token, direction="right")

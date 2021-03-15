@@ -1,5 +1,7 @@
 """Dictionaries of expressions used across the package"""
 
+import re
+
 structure = {
     'enacting_start': r'HA[A-Z]+[\s]*ADOPTED[\s]*THIS[\s]*[A-Z]*[:]{0,1}|HA[A-Z]+[\s]*DECIDED[\s]AS[\s][A-Z]+[:]{0,1}|DECIDES\s*AS.*?\s|DECLARE[S]*.*?\s|(?=HEREBY\s*RECOMMEND(?:S))',
     'enacting_start_lenient': r'(?=^\s*H[A-Z]{2,6}?(?<!ING)\b\s+[^a-z]+(?:$|:))',
@@ -21,7 +23,7 @@ elements = {
     'recital': r'(?:(?:(?<=^)\s*\([0-9]{1,3}\s*(?=\)))|(?:(?<=^)\s*[0-9]{1,3}\s*(?=\.))).*',
     'recital_whereas': r'^Whereas[^\:\n]+',
     'citation': structure['citations_start'] +r'(?:.*)',
-    'article_identifier': r'^[\s]*[\[\s*]*A[A-za-z]{6}[\s]*[0-9]{1,8}[\s]*[0-9]*\b(?=[\n]*[0-9]\.|[\n]*\(|[\n]*[A-Z]|[\s]*[A-Z]|[\s]*–|[\s]*-|)(?!\s*of\s|\s*shall\s|\s*is\s|[0-9]*,|[0-9]* and|[0-9]*[\n]{1,}Article|,|[a-z]|[0-9]*\([0-9]{1,3}\)|[ \t]*\([0-9]|[ ]*TFEU|[ ]*of|[ ]*shall)',
+    'article_identifier': r'^[\s]*[\[\s*]*A[A-za-z]{6}[\s]*[0-9]{1,8}[\s]*[0-9]*[a-z]{0,1}(?:\sbis){0,1}\b(?=[\n]*[0-9]\.|[\n]*\(|[\n]*[A-Z]|[\s]*[A-Z]|[\s]*–|[\s]*-|)(?!\s*of\s|\s*shall\s|\s*is\s|[0-9]*,|[0-9]* and|[0-9]*[\n]{1,}Article|,|[a-z]|[0-9]*\([0-9]{1,3}\)|[ \t]*\([0-9]|[ ]*TFEU|[ ]*of|[ ]*shall)',
     'single_article_identifier': r'(?:^Sole\s*Article|^Single\s*Article)\s*$',
     'article_num': r'Article\s*([0-9 ]+(?:[a-z]\s)*)',
     'article_any_num': r'[0-9 ]+(?:[a-z]\s)*',
@@ -33,3 +35,25 @@ elements = {
     'article_indent_id': r'(?:^[ ]*-)',
     'article_section_titles': r'(?:^[ ]*(?:Section|Chapter|TITLE))'
 }
+
+entities = {
+        'references': {
+        'ref_stopwords': r'$|shall\s|with\s|are\s|notwithstanding\s|for\s|not\s|until\s|under\s',
+        'prefixes': r'(?:of|with|in)',
+        'elements': r'(?:article[s]*|paragraph[s]*|point[s]*|sentence[s]*|indent[s]*|annex[es]*|part[s]|section[s]|chapter[s]*|title[s]*)',
+        'element_nums': r'(?:[0-9IVX \(\)]+(?:[a-z ]\))*(?:(?:[ 0-9\(\)]|[a-z]{0,3|[ABC])[\s\.]+)*\s*)',
+        'separators': r'(?:[,& \s]|(?:and)|(?:or)|(?:to|-)|(?:et\s*seq[\.]*)\s*)',
+        'qualifiers': r'(?:(?:of|to)*\s*(?:the|this)\s*(?:present)*)',
+        'act_type_prefixes': r'(?:draft)',
+        'act_subtype_prefixes': r'(?:Council|Parliament|Cooperation|Commission)',
+        'act_types': r'(?:thereof|TFEU|TEU|Regulation[s]*|Decision[s]*|Directive[s]*|Resolution[s]*|Recommentation[s]*|Treat[yies]+|Protocol[s]*|Convention[s]*|Agreement[s]*|Arrangement[s]*|Report[s]*|Resolution[s]*|Opinion[s]*)',
+        'act_identifiers': r'(?:.*?(?:[\n\.\;]|\[[0-9]+\]|$|shall\s|with\s|are\s|notwithstanding\s|for\s|not\s|until\s|under\s))',
+    },
+    'non_references':  [r'This [A-Z]+[a-z]* shall']
+
+}
+
+entities['references']['act_types_el'] = re.sub (r'thereof', "(?:(?:(?:of|with|in|under)\\\s)Article|Paragraph|Annex)|thereof", entities['references']['act_types'])
+entities['references']['ref_element_acts'] = f'{entities["references"]["elements"]}.*of{{entities["references"]["act_identifiers"]}}'
+entities['references']['ref_elements'] =f'{entities["references"]["elements"]}\s*(?:\s|{entities["references"]["elements"]}|{entities["references"]["separators"]}|{entities["references"]["element_nums"]})+'
+entities['references']['ref_acts'] = f'(?:{entities["references"]["prefixes"]}|{entities["references"]["qualifiers"]})*{entities["references"]["act_type_prefixes"]}*\s*{entities["references"]["act_subtype_prefixes"]}*\s*(?:[a-z0-9-,]+\s+){{0,1}}(?!^){entities["references"]["act_types"]}\s*{entities["references"]["act_identifiers"]}'

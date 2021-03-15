@@ -6,6 +6,8 @@ from euplexer import structure
 from euplexer import elements
 from euplexer import content
 from euplexer import exceptions
+from euplexer import entities
+from euplexer.entities import references
 
 class EuplexWrapper:
 
@@ -20,12 +22,16 @@ class EuplexWrapper:
     # class to run all analyses on a
     # returnns a combination of a spacy object and some additional information
 
-    def __init__(self):
+    def __init__(self, nlp):
+
+        self.nlp = nlp
 
         if not Doc.has_extension("parts"):
             self.EuplexStructure = structure.Structure()
         if not Doc.has_extension("article_elements"):
             self.EuplexElements = elements.Elements()
+
+        self.EuplexReferenceSearch = entities.EntitySearch(name = "references", nlp = self.nlp, matcher = references.ReferenceMatcher, overwrite_ents=True)
 
         # Register extensions
         if not Doc.has_extension("complexity"):
@@ -54,6 +60,7 @@ class EuplexWrapper:
                 doc = self.EuplexStructure(doc)
             if doc._.article_elements is None:
                 doc = self.EuplexElements(doc)
+            doc = self.EuplexReferenceSearch(doc)
             if doc._.complexity is None:
                 doc._.complexity = {
                     'citations': citation_count(doc),
@@ -129,7 +136,7 @@ def article_count(doc):
     # @TODO methods in older analysis
     ## using distance measures
 
-    return(len(doc.spans['articles']))
+    return(matched_articles_count(doc))
 
 
 def structural_size(doc, parts = "all"):
@@ -160,6 +167,7 @@ def structural_size(doc, parts = "all"):
     else:
         recital_size = recital_count(doc)
         return enacting_size + recital_size
+
 
 def avg_depth(doc, basis = "element"):
 
@@ -214,11 +222,12 @@ def avg_depth(doc, basis = "element"):
 
 
 
+def count_references(text, nlp):
 
+    references = identify_references(text, nlp)
 
-    if parts == "enacting":
-        return enacting_size
-    else:
-        recital_size = recital_count(doc)
-        return enacting_size + recital_size
-
+    # count and return dictionary like
+    reference_counts = {
+        'int': 0,
+        'ext': 0
+    }
