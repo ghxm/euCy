@@ -94,14 +94,15 @@ def reference_spans(doclike, label = "REFERENCE", match_on = "all"):
 
     """Wrapper for the whole process of identifying references, taking a doc or span object and returning a set of spans with the referneces contained in the span listed in the ._.references extension = [{ref1}, {ref2}]"""
 
+    def range_intersect(r1, r2):
+        return range (max (r1.start, r2.start), min (r1.stop, r2.stop)) or None
 
     def _combine_overlapping_matches(match_list):
 
         combined_list_1 = []
         combined_list_2 = []
 
-        def range_intersect(r1, r2):
-            return range (max (r1.start, r2.start), min (r1.stop, r2.stop)) or None
+
 
         def add_matches(ma1,ma2):
 
@@ -136,8 +137,8 @@ def reference_spans(doclike, label = "REFERENCE", match_on = "all"):
                     if range_intersect(m1_range, mo_range) is not None or (m1_range.stop == mo_range.start):
                         m1 = add_matches(m1, mo)
                         matches_type_o.remove(mo)
-                    else:
-                        combined_list_1.append(mo)
+                    #else:
+                    #    combined_list_1.append(mo)
 
             combined_list_1.append(m1)
 
@@ -157,8 +158,7 @@ def reference_spans(doclike, label = "REFERENCE", match_on = "all"):
                     if range_intersect(m2_range, m3_range) is not None:
                         m2 = add_matches(m2, m3)
                         matches_type_3.remove(m3)
-                    else:
-                        combined_list_2.append(m3)
+
 
             combined_list_2.append(m2)
 
@@ -169,30 +169,113 @@ def reference_spans(doclike, label = "REFERENCE", match_on = "all"):
 
     def _process_match(match):
 
-        """Internal function to remove unnecessary reference text, split if multiple in one match (NOT Article 1 and 2 BUT Article 4 .......... and Article 3). sort out non-references etc"""
+        def _has_element_num(text):
+            words = text.split()
+            words = [w for w in words if re.search(euplexre.entities['references']['elements'], w) is None]
+            text = " ".join(words)
+            if re.search(r'[0-9]| [XVI]{1,3}(?![a-z])| \([a-z]{1,2}\) ', text) is not None:
+                return True
+            else:
+                return False
+
+        def _elements(text):
+            elements_list =  [m for m in re.findall ('[a-z]*' + euplexre.entities['references']['elements'] + '[a-z]*', text, flags=re.MULTILINE|re.IGNORECASE)]
+            return([e for e in elements_list if re.search('^' + euplexre.entities['references']['elements'] + '$', e, flags=re.MULTILINE|re.IGNORECASE) is not None])
+
+
+        def _has_element(text):
+            if len(_elements(text))>0:
+                return True
+            else:
+                return False
+
+        def _has_cap_element(text):
+
+            """Internal function to check whether the given text has a capitalized or upper case element name"""
+
+            if any([e.istitle() for e in _elements(text)]):
+                return True
+            else:
+                return False
+
+        def _acts(text):
+            acts_list = [m for m  in re.findall ('[a-z]*' + euplexre.entities['references']['act_types'] + '[a-z]*', text, flags=re.MULTILINE|re.IGNORECASE)]
+            return [a for a in acts_list if re.search('^' + euplexre.entities['references']['act_types'] + '$', a, flags=re.MULTILINE|re.IGNORECASE) is not None]
+
+        def _has_act(text):
+            if len (_acts (text)) > 0:
+                return True
+            else:
+                return False
+
+        def _has_cap_act(text):
+            if any ([a.istitle () if re.search(r'thereof|hereto', a) is None else True for a in _acts (text) ]):
+                return True
+            else:
+                return False
 
 
         cleaned_matches = []
 
         # @TODO first split and if, call process matches again for all parts bzw loop over?
         ## e.g. paragraph 1, the manufacturer or importer shall notify the Agency of the following information in the format specified by the Agency in accordance with Article 108: may be one match
+        # and ACT/ELEMENT
+        # or ACT/AELEMENT
+        # , ACT/ELEMENT
+        # . ACT/ELEMENT
+        # .........
         split_match = [match]
 
         for submatch in split_match:
 
+            submatch_span = doclike[utils.char_to_token (submatch['string_start'], doclike_char_token):utils.char_to_token (
+                submatch['string_end'], doclike_char_token)]
+            match_token_text = submatch_span.text
+
+            if 'informed decisions' in submatch['match']:
+                print("DEBUG")
+                pass
+
+            if not _has_element(match_token_text) and not _has_act(match_token_text):
+                continue
+
             # rule out any non-references via regex dict
-            if any([re.search(p, submatch['match']) is not None for p in euplexre.entities['non_references']]):
+            if any([re.search(p, match_token_text) is not None for p in euplexre.entities['non_references']]):
                 continue
             # if no element and only act and act is Article
-            if re.search(euplexre.entities['references']['elements'], submatch['match'], flags=re.IGNORECASE) is None and re.search(euplexre.entities['references']['act_types'], submatch['match'], flags=re.IGNORECASE) is None:
+            if re.search(euplexre.entities['references']['elements'], match_token_text, flags=re.IGNORECASE) is None and re.search(euplexre.entities['references']['act_types'], match_token_text, flags=re.IGNORECASE) is None:
                 continue
 
             # if reference is merely self ref to whole act (list re.findall construction is necessary bc regex matches whitespace)
-            if len([m for m in re.findall(euplexre.entities['references']['element_nums'], submatch['match']) if len(m.strip())>0])==0 and re.search(r'(?:this|present)\s+[A-Z]+[a-z]*', submatch['match']) is not None:
+            if not _has_element_num(match_token_text) and re.search(r'(?:this|present)\s+[A-Z]+[a-z]*', match_token_text, flags=re.MULTILINE) is not None:
                 continue
 
-            # @TODO: Element only without num (e.g. of Articles, of an Article,)
-            # @TODO: Act without capitalization (e.g. "unanimous agreement")
+            # Element only without num (e.g. of Articles, of an Article, this Article, this Title etc)
+            if _has_element(match_token_text) and not _has_element_num(match_token_text):
+                continue
+
+            # Act without capitalization (e.g. "unanimous agreement")
+            if _has_act(match_token_text) and not _has_cap_act(match_token_text):
+                continue
+
+            # for acts/elements only check for this before (use n left)
+            if _has_act(match_token_text) and not _has_element(match_token_text):
+                act_match = re.search(euplexre.entities['references']['act_types'], match_token_text.strip(), flags=re.MULTILINE | re.IGNORECASE)
+                if act_match is not None and act_match.start() < 1:
+                    # get n 2 lef tokens and check
+                    prefix = [t.text for t in utils.get_n_left(3, submatch_span[0])]
+                elif act_match is not None:
+                    # get string until act match
+                    prefix = submatch['match'][:act_match.start()]
+                else:
+                    continue
+
+                # check prefix for 'this'
+                if "this" in prefix:
+                    continue
+                if " a " in prefix:
+                    continue
+                # @TODO (see issues notes) what abbout the Regulation if defined before
 
             cleaned_matches.append(submatch)
 
@@ -223,6 +306,7 @@ def reference_spans(doclike, label = "REFERENCE", match_on = "all"):
 
             mat_span = doclike[utils.char_to_token (mat['string_start'], doclike_char_token):utils.char_to_token (mat['string_end'], doclike_char_token)]
             ents_list.append((label,mat_span.start, mat_span.end))
+
 
     return(ents_list)
 

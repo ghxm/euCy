@@ -132,9 +132,10 @@ def get_n_tokens(n, token, direction="left"):
     else:
         lower = token.i
         upper = token.i + n
-    yield [tok for tok in token.doc if tok.i in  range(lower, upper)]
+    return [tok for tok in token.doc[lower:upper]]
 
 def get_n_left(n, token):
+
     return get_n_tokens(n, token, direction="left")
 
 def get_n_right(n, token):
