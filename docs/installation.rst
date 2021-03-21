@@ -8,13 +8,13 @@ Installation
 Stable release
 --------------
 
-To install euplexer, run this command in your terminal:
+To install euplexCy, run this command in your terminal:
 
 .. code-block:: console
 
-    $ pip install euplexer
+    $ pip install euplexcy
 
-This is the preferred method to install euplexer, as it will always install the most recent stable release.
+This is the preferred method to install euplexCy, as it will always install the most recent stable release.
 
 If you don't have `pip`_ installed, this `Python installation guide`_ can guide
 you through the process.
@@ -26,19 +26,19 @@ you through the process.
 From source
 -----------
 
-The source for euplexer can be downloaded from the `Github repo`_.
+The source for euplexCy can be downloaded from the `Github repo`_.
 
 You can either clone the public repository:
 
 .. code-block:: console
 
-    $ git clone git://github.com/ghxm/euplexer
+    $ git clone git://github.com/ghxm/euplexcy
 
 Or download the `tarball`_:
 
 .. code-block:: console
 
-    $ curl -OJL https://github.com/ghxm/euplexer/tarball/master
+    $ curl -OJL https://github.com/ghxm/euplexcy/tarball/master
 
 Once you have a copy of the source, you can install it with:
 
@@ -46,5 +46,5 @@ Once you have a copy of the source, you can install it with:
 
     $ pip install .
 
-.. _Github repo: https://github.com/ghxm/euplexer
-.. _tarball: https://github.com/ghxm/euplexer/tarball/master
+.. _Github repo: https://github.com/ghxm/euplexCy
+.. _tarball: https://github.com/ghxm/euplexCy/tarball/master

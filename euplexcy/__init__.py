@@ -1,4 +1,4 @@
-"""Top-level package for euplexer."""
+"""Top-level package for euplexCy."""
 
 __author__ = """Maximilian Haag"""
 __email__ = 'maximilian.haag@gsi.uni-muenchen.de'

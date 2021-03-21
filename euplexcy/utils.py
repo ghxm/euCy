@@ -1,7 +1,9 @@
 import re
-from euplexer.structure import Structure, text_parts
+from euplexcy.structure import Structure, text_parts
 from spacy.tokens import Doc
 from spacy.tokens.span import Span
+from collections import OrderedDict
+
 
 
 def clean_text(text, rm_fn =True):
@@ -124,7 +126,7 @@ def get_sentences(doclike, min_sen_length):
         raise ValueError("Pleanse supply a Doc or Span object.")
 
 
-def get_n_tokens(n, token, direction="left"):
+def get_n_tokens(n, token, direction="left", ignore_ws=False, stop_at_newline = True):
 
     if direction == "left":
         lower = token.i - n
@@ -132,11 +134,118 @@ def get_n_tokens(n, token, direction="left"):
     else:
         lower = token.i
         upper = token.i + n
-    return [tok for tok in token.doc[lower:upper]]
+    tok_list = [tok for tok in token.doc[lower:upper]]
+    if ignore_ws:
+        ws_count = len([t for t in tok_list if t.is_space])
+        if direction == "left":
+            lower=lower - ws_count
+        else:
+            upper = upper + ws_count
+        tok_list = [tok for tok in token.doc[lower:upper]]
 
-def get_n_left(n, token):
+    if stop_at_newline:
+        newline_tok = [tok for tok in tok_list if '\n' in tok.text_with_ws]
 
-    return get_n_tokens(n, token, direction="left")
+        if len(newline_tok)>0:
+            if direction == "left":
+                lower = newline_tok[-1]
+            else:
+                upper = newline_tok[0]
 
-def get_n_right(n, token):
-    return get_n_tokens(n, token, direction="right")
+    return tok_list
+
+
+def get_n_left(n, token, ignore_ws=False, stop_at_newline = True):
+    return get_n_tokens(n, token, direction="left", ignore_ws=ignore_ws, stop_at_newline=stop_at_newline)
+
+def get_n_right(n, token, ignore_ws = False, stop_at_newline = True):
+    return get_n_tokens(n, token, direction="right", ignore_ws=ignore_ws, stop_at_newline=stop_at_newline)
+
+
+def align_span_with_text(span, text, right = True, left = False):
+
+    if not right and not left:
+        return span
+
+    aligned_tokens = []
+
+    search_pos_right =  0
+    for i, token in enumerate(span):
+        if token.is_space:
+            continue
+        if sum([len(t) for t in span[i:]]) >= len(text[search_pos_right:]) and i < len([t for t in span if not t.is_space]) - 4:
+            tok_match = re.escape(token.text_with_ws) + "(?=" + re.escape(span[i+1].text_with_ws + span[i+2].text_with_ws) + ")" # match tri-grams
+        else:
+            tok_match = re.escape(token.text)
+        token_in_text = re.search(tok_match, text[search_pos_right:])
+        if token_in_text is not None:
+            search_pos_right = token_in_text.end()
+            aligned_tokens.append(token)
+        else:
+            if search_pos_right > 0: # if there has been a previous match
+                if right:
+                    break
+                else:
+                    aligned_tokens.append (token)
+            else:
+                if not left:
+                    aligned_tokens.append(token)
+
+
+    # + 1 for last token because spans match exclusive (until the start of the next token)
+    try:
+        aligned_span = span.doc[aligned_tokens[0].i:aligned_tokens[-1].i]
+        return aligned_span
+    except:
+        return None
+
+def letter_to_int (letter):
+    letter = letter.lower().strip()
+    return ord(letter)-96
+
+def int_to_letter(num):
+    return chr (96+num)
+
+
+def roman_to_int(s):
+    roman = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
+    num = 0
+
+    for i in range (len (s) - 1):
+        if roman[s[i]] < roman[s[i + 1]]:
+            num += roman[s[i]] * -1
+            continue
+
+        num += roman[s[i]]
+
+    num += roman[s[-1]]
+
+    return num
+
+
+def int_to_roman(num):
+
+    roman = OrderedDict()
+    roman[1000] = "M"
+    roman[900] = "CM"
+    roman[500] = "D"
+    roman[400] = "CD"
+    roman[100] = "C"
+    roman[90] = "XC"
+    roman[50] = "L"
+    roman[40] = "XL"
+    roman[10] = "X"
+    roman[9] = "IX"
+    roman[5] = "V"
+    roman[4] = "IV"
+    roman[1] = "I"
+
+    def roman_num(num):
+        for r in roman.keys():
+            x, y = divmod(num, r)
+            yield roman[r] * x
+            num -= (r * x)
+            if num <= 0:
+                break
+
+    return "".join([a for a in roman_num(num)])

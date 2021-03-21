@@ -1,19 +1,19 @@
 """Main module."""
 
-import spacy
 from spacy.tokens import Doc, Span
-from euplexer import structure
-from euplexer import elements
-from euplexer import content
-from euplexer import exceptions
-from euplexer import entities
-from euplexer.entities import references
+from euplexcy import structure
+from euplexcy import elements
+from euplexcy import content
+from euplexcy import entities
+from euplexcy.entities import references
+from euplexcy.tokenizer import tokenizer, retokenizer
+from collections import Counter
 
 class EuplexWrapper:
 
     # Spacy pipeline component
     # (Parts called here can also be used inidividually and without the pipeline functonality)
-    # but thsi si a wrapepr for them
+    # but this is a wrapepr for them
 
     # EUPLEX version of a Spacy Doc obbjects that extends it by
     # a structure attribute/funciton (that stores infromation that calls resp spacy tokennts e/attributes)
@@ -23,6 +23,11 @@ class EuplexWrapper:
     # returnns a combination of a spacy object and some additional information
 
     def __init__(self, nlp):
+
+        nlp.tokenizer = tokenizer (nlp)
+        nlp.add_pipe("retokenizer", first = True, name = "retokenizer")
+
+        # @TODO add retokenizer pipe after tokenizer
 
         self.nlp = nlp
 
@@ -62,14 +67,17 @@ class EuplexWrapper:
                 doc = self.EuplexElements(doc)
             doc = self.EuplexReferenceSearch(doc)
             if doc._.complexity is None:
+                # get complexity measures
                 doc._.complexity = {
                     'citations': citation_count(doc),
-                    'recital_count': recital_count(doc),
-
+                    'recitals': recital_count(doc),
+                    'articles': article_count(doc),
+                    'references': reference_count(doc),
+                    'avg_depth': avg_depth(doc, basis='element'),
+                    'avg_article_depth': avg_depth (doc, basis='article')
                 }
 
 
-            # Get complexity measures
             # @TODO use lambada function to call with paramters (e.g. strucutral size)
 
 
@@ -160,8 +168,6 @@ def structural_size(doc, parts = "all"):
                 enacting_size += len(indents)
                 enacting_size += len(points)
 
-
-
     if parts == "enacting":
         return enacting_size
     else:
@@ -221,13 +227,21 @@ def avg_depth(doc, basis = "element"):
         return sum([sum(lvl) for lvl in articles_levels])/sum([len(l) for l in articles_levels])
 
 
+def reference_count(doc):
 
-def count_references(text, nlp):
+    if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
+        # if function is called outside spacy pipeline
 
-    references = identify_references(text, nlp)
+        EuplexDoc = EuplexWrapper
 
-    # count and return dictionary like
-    reference_counts = {
-        'int': 0,
-        'ext': 0
-    }
+        doc = EuplexDoc(doc)
+
+    ref_count = Counter()
+
+    for ent in doc.ents:
+        if ent.label_ == "REFERENCE":
+            for ref in ent._.references:
+                ref_count[ref.get('relation', 'NONE')] += 1
+
+    return ref_count
+

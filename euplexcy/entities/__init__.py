@@ -1,7 +1,7 @@
 from spacy.pipeline import EntityRuler
 from spacy.tokens.span import Span
 from spacy.tokens import Doc
-from euplexer.entities import references
+from euplexcy.entities import references
 
 # @TODO: add EntitySearch class here
 # @TODO: add extra filed with classes and ufncitons/methods that inherit from EntitySarch in this directory, e.g. references.py class References
@@ -15,6 +15,9 @@ class EntitySearch(EntityRuler):
 
         # super etc
         super().__init__(**kwargs)
+
+        if not Span.has_extension("references"):
+            Span.set_extension("references", default = None)
 
 
         self.matcher = matcher()
@@ -34,6 +37,9 @@ class EntitySearch(EntityRuler):
         seen_tokens = set ()
         for label, start, end in matches:
             span = Span (doc, start, end, label=label)
+
+            span._.references = references.resolve_reference_entities(span)
+
             if any (t.ent_type for t in span) and not self.overwrite:
                 continue
             # check for end - 1 here because boundaries are inclusive

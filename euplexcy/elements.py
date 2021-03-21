@@ -1,7 +1,7 @@
 import re
-from euplexer import utils
-from euplexer import regex as euplexre
-from euplexer import structure
+from euplexcy import utils
+from euplexcy import regex as euplexre
+from euplexcy import structure
 from spacy.tokens import Doc
 from spacy.tokens.span import Span
 

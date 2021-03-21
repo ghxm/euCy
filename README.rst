@@ -1,5 +1,5 @@
 ========
-euplexer
+euplexCy
 ========
 
 
@@ -16,11 +16,22 @@ euplexer
 
 
 
-Tools to analyze EU legal text.
+spaCy pipeline component to generate complexity measures for EU legal text.
 
 
 * Free software: MIT
-* Documentation: https://euplexer.readthedocs.io.
+* Documentation: https://euplexcy.readthedocs.io.
+
+
+Installation
+_____________
+
+To install the ``dev`` branch, run:
+
+.. code-block:: console
+
+    $ pip install https://github.com/ghxm/spacy_euplexdb_readability/tarball/dev
+
 
 
 Features

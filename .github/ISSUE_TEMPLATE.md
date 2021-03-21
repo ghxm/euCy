@@ -1,4 +1,4 @@
-* euplexer version:
+* euplexCy version:
 * Python version:
 * Operating System:
 
