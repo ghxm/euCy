@@ -30,7 +30,7 @@ To install the ``dev`` branch, run:
 
 .. code-block:: console
 
-    $ pip install https://github.com/ghxm/spacy_euplexdb_readability/tarball/dev
+    $ pip install https://github.com/ghxm/euplexCy/tarball/dev
 
 
 
