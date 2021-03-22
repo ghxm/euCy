@@ -51,7 +51,8 @@ entities = {
         'act_identifiers': r'(?:.*?(?:[\n;%]|(?<!\.)\.(?!\.+)|\[[0-9]+\]|$|entry\s*into\s*force\s*of|shall\s|in\sorder\s|because\s|\sany\s|and\s(?=[A-Z]{5,})|and\sin|or\sin|will\s|by\s|with\s|are\s|\sis\s|notwithstanding\s|for\s|not\s|until\s|under\s))',
     },
     'non_references':  [r'This [A-Z]+[a-z]* shall',
-                        r'hereinafter\s*referred\s*to\s*as'],
+                        r'hereinafter\s*referred\s*to\s*as',
+                        r'This [A-Z]+[a-z]* is addressed to'],
     'split_references': [r'(?<=.{7})(.(?=(?:hereinafter\s*referred\s*to\s*as|annexed\sto|attached\sto|referred\sto\sin)))|(?:(?:and|or|with|under|by)\s|[,\n;\.])(?!\s*this)(?=\s*(?:(?:article[s]*|paragraph[s]*|point[s]*|sentence[s]*|indent[s]*|annex[es]*|(?<!other\s)part(?:[^a-z]}|s)|section[s]*|chapter[s]*|title[s]*)|(?:[^0-9\(\)]*?(?:TFEU|TEU|Regulation[s]*|Decision[s]*|Directive[s]*|Resolution[s]*|Recommendation[s]*|Treat[yies]+|Protocol[s]*|Convention[s]*|Agreement[s]*|Arrangement[s]*|Report[s]*|Resolution[s]*|Opinion[s]*))))']
 
 }

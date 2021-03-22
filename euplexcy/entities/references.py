@@ -212,7 +212,7 @@ def _resolve_range(text):
 
     try:
         range_nums = [i for i in range (lower, upper + 1)]
-    else:
+    except:
         return [text]
 
 
@@ -436,7 +436,7 @@ def reference_spans(doclike, label = "REFERENCE", match_on = "all"):
                 continue
 
             # rule out any non-references via regex dict
-            if any([re.search(p, match_token_text) is not None for p in euplexre.entities['non_references']]):
+            if any([re.search(p, match_token_text, flags=re.IGNORECASE) is not None for p in euplexre.entities['non_references']]):
                 continue
             # if no element and only act and act is Article
             if re.search(euplexre.entities['references']['elements'], match_token_text, flags=re.IGNORECASE) is None and re.search(euplexre.entities['references']['act_types'], match_token_text, flags=re.IGNORECASE) is None:
@@ -773,6 +773,7 @@ def resolve_reference_entities(entity):  # or count?
     if all([len(entity_parts[key])==0 for key in ['element', 'element_num', 'act', 'act_id', 'subpar_element_num']]):
         entity_parts['subpar_element_num'] = []
     if any(['thereof' in act.lower() for act in entity_parts['act']]) and all([len(entity_parts[key])==0 for key in ['element', 'element_num', 'subpar_element', 'subpar_element_num']]):
+
         entity_parts['act'] = [act for act in entity_parts['act'] if not 'thereof' in act.lower() and not 'this' in act.lower()]
         if len(entity_parts['act']) == 0:
             entity_parts['act_id'] = []

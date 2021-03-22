@@ -53,7 +53,7 @@ def retokenizer(doc, name = "retokenizer", custom_retokenization_patterns = [], 
          'pattern': r'^[0-9]+\.\s+',
          'align': "strict"}, # 1.
         {'attrs': {"POS": "NUM"},
-         'pattern': r'(?:(?:(?:[A-Za-z0-9])|\.{2,})+\s*/)+\s*(?:[A-Za-z0-9]+|[\.]{2,})',
+         'pattern': r'(?:(?:[A-Za-z0-9]|\.)+\s*/)+\s*(?:[A-Za-z0-9]|\.)+',
          'align': "strict"},
         {'attrs': {"POS": "X"},
          'pattern': r'\[[0-9A-Z]+\]', # footnotes
@@ -68,6 +68,7 @@ def retokenizer(doc, name = "retokenizer", custom_retokenization_patterns = [], 
     retok_matches = []
 
     for pattern in custom_retokenization_patterns:
+        print(pattern)
         retok_matches.extend([{'span': m.span(), 'attrs': pattern['attrs'], 'align': pattern['align']} for m in re.finditer(pattern['pattern'], doc.text)])
 
     spans = []
