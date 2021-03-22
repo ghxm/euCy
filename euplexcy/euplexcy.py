@@ -8,6 +8,9 @@ from euplexcy import entities
 from euplexcy.entities import references
 from euplexcy.tokenizer import tokenizer, retokenizer
 from collections import Counter
+from spacy.pipeline.dep_parser import DEFAULT_PARSER_MODEL
+import en_core_web_sm
+
 
 class EuplexWrapper:
 
@@ -25,7 +28,7 @@ class EuplexWrapper:
     def __init__(self, nlp, debug = False):
 
         nlp.tokenizer = tokenizer (nlp)
-        nlp.add_pipe("retokenizer", first = True, name = "retokenizer")
+        nlp.add_pipe("retokenizer", last = True, name = "retokenizer")
 
         self.debug = debug
 
@@ -229,7 +232,7 @@ def avg_depth(doc, basis = "element"):
 
     if basis == "article":
         # average article depth
-        return sum([sum(lvl)/len(lvl) for lvl in articles_levels])/len(articles_levels)
+        return sum([sum(lvl)/len(lvl) for lvl in articles_levels if len(lvl) != 0])/len(articles_levels)
     elif basis == "element":
         # average element depth
         return sum([sum(lvl) for lvl in articles_levels])/sum([len(l) for l in articles_levels])

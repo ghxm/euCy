@@ -5,6 +5,7 @@ from spacy.tokenizer import Tokenizer
 from spacy.language import Language
 import re
 from spacy import util
+import warnings
 
 def tokenizer(nlp, name = "tokenizer", custom_exceptions = [], custom_token_match_patterns = [], overwrite_euplexcy_default = False):
 
@@ -40,20 +41,21 @@ def tokenizer(nlp, name = "tokenizer", custom_exceptions = [], custom_token_matc
 @Language.component("retokenizer")
 def retokenizer(doc, name = "retokenizer", custom_retokenization_patterns = [], overwrite_euplexcy_default = False):
 
+
     euplexcy_default_patterns = [
-        {'attrs': None,
+        {'attrs': {"POS": "NUM"},
          'pattern': r'\((?:[0-9]+|[a-zA-Z]{1,3})\)',
          'align': 'expand'}, # (1) (a) (EC)
-        {'attrs': None,
+        {'attrs': {"POS": "SYM"},
          'pattern': r'\.{3,}',
          'align': "strict"}, # ......
-        {'attrs': None,
+        {'attrs': {"POS": "NUM"},
          'pattern': r'^[0-9]+\.\s+',
          'align': "strict"}, # 1.
-        {'attrs': None,
+        {'attrs': {"POS": "NUM"},
          'pattern': r'(?:(?:(?:[A-Za-z0-9])|\.{2,})+\s*/)+\s*(?:[A-Za-z0-9]+|[\.]{2,})',
          'align': "strict"},
-        {'attrs': None,
+        {'attrs': {"POS": "X"},
          'pattern': r'\[[0-9A-Z]+\]', # footnotes
          'align': "strict"}
     ]
@@ -70,16 +72,23 @@ def retokenizer(doc, name = "retokenizer", custom_retokenization_patterns = [], 
 
     spans = []
 
-    for match in retok_matches:
-        spans.append(doc.char_span (match['span'][0], match['span'][1], alignment_mode=match['align']))
 
-    spans = [span for span in spans if span is not None]
-    spans = util.filter_spans(spans)
+    for match in retok_matches:
+        spans.append({'span': doc.char_span (match['span'][0], match['span'][1], alignment_mode=match['align']),
+                     'attrs': match['attrs']})
+
+    spans = [span for span in spans if span['span'] is not None]
+    filtered_spans = util.filter_spans([span['span'] for span in spans])
+    spans = [s for s in spans if s['span'] in filtered_spans]
 
     with doc.retokenize () as retokenizer:
-        for span in spans:
-            retokenizer.merge (span)
-
+        for sp in spans:
+            span = sp['span']
+            attrs = sp['attrs']
+            if attrs is not None:
+                retokenizer.merge (span, attrs)
+            else:
+                retokenizer.merge (span)
 
     return doc
 

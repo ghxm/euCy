@@ -5,7 +5,7 @@ import re
 structure = {
     'enacting_start': r'HA[A-Z]+[\s]*ADOPTED[\s]*THIS[\s]*[A-Z]*[:]{0,1}|HA[A-Z]+[\s]*DECIDED[\s]AS[\s][A-Z]+[:]{0,1}|DECIDES\s*AS.*?\s|DECLARE[S]*.*?\s|(?=HEREBY\s*RECOMMEND(?:S))',
     'enacting_start_lenient': r'(?=^\s*H[A-Z]{2,6}?(?<!ING)\b\s+[^a-z]+(?:$|:))',
-    'annex_start': r'^(?=\s*^(?=ANNEX|LEGISLATIVE FINANCIAL STATEMENT))|^(?=\s*ANNEX[\s]*(?:[^\n]){0,20}[\n\r]|[\n\r]|\s*[0-9IXV]*))',
+    'annex_start': r'^(?=\s*^(?=ANNEX|LEGISLATIVE FINANCIAL STATEMENT))|^(?=\s*ANNEX[\s]*(?:[^\n]){0,20}[\n\r]|[\n\r]|\s*[0-9IXV]*)',
     'citations_start': r'(?:^)(?=[A-Z][a-z]+ing|After)',
     'recitals_start_whereas': r'(?=(?:[,\.]|^|^\s*\([0-9]\))\s*Whereas[:]{0,1},*)',
     'recitals_start_having': r'(?=^Having regard to the following.{0,5}$)',
@@ -23,7 +23,7 @@ elements = {
     'recital': r'(?:(?:(?<=^)\s*\([0-9]{1,3}\s*(?=\)))|(?:(?<=^)\s*[0-9]{1,3}\s*(?=\.))).*',
     'recital_whereas': r'^Whereas[^\:\n]+',
     'citation': structure['citations_start'] +r'(?:.*)',
-    'article_identifier': r'^[\s]*[\[\s*]*A[A-za-z]{6}[\s]*[0-9]{1,8}[\s]*[0-9]*[a-z]{0,1}(?:\sbis){0,1}\b(?=[\n]*[0-9]\.|[\n]*\(|[\n]*[A-Z]|[\s]*[A-Z]|[\s]*–|[\s]*-|)(?!\s*of\s|\s*shall\s|\s*is\s|[0-9]*,|[0-9]* and|[0-9]*[\n]{1,}Article|,|[a-z]|[0-9]*\([0-9]{1,3}\)|[ \t]*\([0-9]|[ ]*TFEU|[ ]*of|[ ]*shall)',
+    'article_identifier': r'^[\s]*[\[\s*]*A[A-Za-z]{6}[\s]*[0-9]{1,8}[\s]*[0-9]*[a-z]{0,1}(?:\sbis){0,1}\b(?=[\n]*[0-9]\.|[\n]*\(|[\n]*[A-Z]|[\s]*[A-Z]|[\s]*–|[\s]*-|)(?!\s*of\s|\s*shall\s|\s*is\s|[0-9]*,|[0-9]* and|[0-9]*[\n]{1,}Article(?!.*(?:shall|of| is ))|,|[a-z]|[0-9]*\([0-9]{1,3}\)|[ \t]*\([0-9]|[ ]*TFEU|[ ]*of|[ ]*shall)',
     'single_article_identifier': r'(?:^Sole\s*Article|^Single\s*Article)\s*$',
     'article_num': r'Article\s*([0-9 ]+(?:[a-z]\s)*)',
     'article_any_num': r'[0-9 ]+(?:[a-z]\s)*',

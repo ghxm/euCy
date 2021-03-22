@@ -237,7 +237,13 @@ def text_parts(doc):
 
     elif bool (recitals_toc_start_match):  # in case the TOC is part of recitals bc of previous split
         recitals = recitals.char_span(0, recitals_toc_start_match.end())
-        enacting_with_toc = doc[recitals.end:enacting.end]
+        if recitals is None:
+            toc_start  = citations.end
+        elif recitals is not None:
+            toc_start = recitals.end
+        else:
+            toc_start = enacting.start
+        enacting_with_toc = doc[toc_start:enacting.end]
 
 
     return(

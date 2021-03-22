@@ -151,6 +151,8 @@ def _is_not_act(token): # function to inspect tokens that look like acts, but ma
         return True
     if not token.text.istitle():
         return True
+    if token.text.isupper() and re.search(r'SECTION|PART|TITLE', falgs=re.IGNORECASE) is not None:
+        return True
 
     return False
 

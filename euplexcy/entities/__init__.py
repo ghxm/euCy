@@ -2,6 +2,7 @@ from spacy.pipeline import EntityRuler
 from spacy.tokens.span import Span
 from spacy.tokens import Doc
 from euplexcy.entities import references
+from spacy import util
 
 # @TODO: add EntitySearch class here
 # @TODO: add extra filed with classes and ufncitons/methods that inherit from EntitySarch in this directory, e.g. references.py class References
@@ -58,4 +59,5 @@ class EntitySearch(EntityRuler):
                     e for e in entities if not (e.start < end and e.end > start)
                 ]
                 seen_tokens.update (range (start, end))
-        doc.ents = entities + new_entities
+        ents = util.filter_spans(entities + new_entities)
+        doc.ents = ents

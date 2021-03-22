@@ -146,13 +146,13 @@ def articles(doc_articles):
 
     while True:
 
-        article_id_matches = [m for m in re.finditer(euplexre.elements['article_identifier'], articles.text, re.MULTILINE)]
+        article_id_matches = [m for m in re.finditer(euplexre.elements['article_identifier'], articles.text, flags=re.MULTILINE|re.IGNORECASE)]
 
         if len(article_id_matches) > 0:
             break
 
         # test for single article
-        article_id_matches = [m for m in re.finditer(euplexre.elements['single_article_identifier'], articles.text, re.MULTILINE)]
+        article_id_matches = [m for m in re.finditer(euplexre.elements['single_article_identifier'], articles.text, flags=re.MULTILINE|re.IGNORECASE)]
 
         if len(article_id_matches) == 1:
             break
@@ -195,7 +195,7 @@ def articles(doc_articles):
                 if len(article_nums) > 0:
                     break
 
-                article_nums = [ma.group(0) for ma in re.finditer(euplexre.elements['article_any_num'])]
+                article_nums = [ma.group(0) for ma in re.finditer(euplexre.elements['article_any_num'], article_span.text.strip())]
 
                 break
 
