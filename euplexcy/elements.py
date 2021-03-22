@@ -282,6 +282,12 @@ def article_elements(doc_article):
             for i, a in enumerate (par_list):
                 par_list[i]._.element_type = "art_par"
 
+        # if no paragraphs found, set article as par
+        if len(par_list) == 0 and len(article.text.strip())>1:
+            par_list.append (article)
+            if Span.has_extension ("element_type"):
+                for i, a in enumerate (par_list):
+                    par_list[i]._.element_type = "art_par"
         return par_list
 
 

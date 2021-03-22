@@ -229,19 +229,23 @@ def avg_depth(doc, basis = "element"):
 
         articles_levels.append(article_levels)
 
+    try:
 
-    if basis == "article":
-        # average article depth
-        if len(articles_levels) == 0:
-            return None
-        else:
-            return sum([sum(lvl)/len(lvl) for lvl in articles_levels if len(lvl) != 0])/len(articles_levels)
-    elif basis == "element":
-        # average element depth
-        if len(articles_levels) == 0:
-            return None
-        else:
-            return sum([sum(lvl) for lvl in articles_levels])/sum([len(l) for l in articles_levels])
+        if basis == "article":
+            # average article depth
+            if len(articles_levels) == 0:
+                return None
+            else:
+                return sum([sum(lvl)/len(lvl) for lvl in articles_levels if len(lvl) != 0])/len(articles_levels)
+        elif basis == "element":
+            # average element depth
+            if len(articles_levels) == 0:
+                return None
+            else:
+                return sum([sum(lvl) for lvl in articles_levels])/sum([len(l) for l in articles_levels])
+    except:
+        return None
+
 
 
 def reference_count(doc):

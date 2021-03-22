@@ -29,7 +29,7 @@ elements = {
     'article_any_num': r'[0-9 ]+(?:[a-z]\s)*',
     'article_num_element': r'(?:(?<=^)(?:([0-9]\.)|((?:\(){0,1}(?:[a-z]{1,2}|[0-9]+)\))))',
     'article_num_paragraph': r'(?<=^)(?:([0-9]+\.))',
-    'article_unnum_paragraph': r'(?<=[A-Za-z0-9 ]{8}).*?(^)[ ]*(?=[A-Z0-9][^\n]{20,})',
+    'article_unnum_paragraph': r'(?<=[A-Za-z0-9 ]{6}).*?(^)[ ]*(?=[A-Z0-9][^\n]{20,})',
     'article_subpar_start': r'(?:^)[ ]*(?=[A-Z0-9][^\n]{10,})',
     'article_point_id': r'(?:^(?:\(){0,1}(?:[a-z]{1,2}|[0-9]+)\))',
     'article_indent_id': r'(?:^[ ]*-)',
