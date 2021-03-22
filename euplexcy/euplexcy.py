@@ -248,6 +248,8 @@ def reference_count(doc):
         doc = EuplexDoc(doc)
 
     ref_count = Counter()
+    ref_count['internal'] = 0
+    ref_count['external'] = 0
 
     for ent in doc.ents:
         if ent.label_ == "REFERENCE":

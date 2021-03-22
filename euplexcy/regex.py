@@ -12,7 +12,7 @@ structure = {
     'article_start': r'(?=^\s*ARTICLE\s*(?:[0-9]|[Oo]ne)[A-Za-z0-9,\- ]{0,200}$|^\s*SOLE\s*ARTICLE\s*$)',
     'article_1_start': r'(?=^\s*ARTICLE\s*(?:1|[Oo]ne)[A-Za-z0-9,\- ]{0,200}$|^\s*SOLE\s*ARTICLE\s*$)',
     'done_at_start': r'^(?=\s*Done[\s]+(?:a[a-z]*\s*|in\s+|\.{2,3}\s+))',
-    'toc_start': r'.(?=TABLE[\s]*OF[\s]*CONTENTS|TOC)',
+    'toc_start': r'.(?=TABLE[\s]*OF[\s]*CONTENTS|\sTOC\s)',
     'toc_start_lenient': r'^(?=[\s*]Contents)',
     'toc_lines': r'(?:^[A-Za-z ]+\s+[0-9IXV]+\s+[^\n]{2,200}$)+?(?=\s+(?:^[A-Za-z ]+\s+[0-9IXV]+\s+[^\n]{2,200}$))',
     'proposal_start': r'^\s*proposal\s*for\s*'
