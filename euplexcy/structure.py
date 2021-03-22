@@ -205,11 +205,11 @@ def text_parts(doc):
                 no_recitals = True # if there are no recitals, but for whatever reason this has not been detected yet
                 break
 
-        citations = doc[_to_token (front_matter_end_match.end ()):_to_token (recitals_start_match.start())]
 
         if not no_recitals:
-
+            citations = doc[_to_token (front_matter_end_match.end ()):_to_token (recitals_start_match.start ())]
             recitals = doc[_to_token (recitals_start_match.start()):front.end]
+
 
 
     # @TODO: Annex
@@ -219,7 +219,8 @@ def text_parts(doc):
     enacting_with_toc = enacting
 
     enacting_toc_start_match = re.search (euplexre.structure['toc_start'], enacting.text[:len (enacting.text) // 4], flags=re.MULTILINE|re.IGNORECASE)
-    recitals_toc_start_match = re.search (euplexre.structure['toc_start'], recitals.text, flags=re.MULTILINE|re.IGNORECASE)
+    if recitals is not None:
+        recitals_toc_start_match = re.search (euplexre.structure['toc_start'], recitals.text, flags=re.MULTILINE|re.IGNORECASE)
 
 
     # remove TOC and store in enacting (vs enacting_with_toc), if no TOC enacting = enacting_with_toc
@@ -235,15 +236,15 @@ def text_parts(doc):
             # enacting = enacting[_to_token (100 + article_1_start_match.start ()):] @TODO: why won't this work?
 
 
-    elif bool (recitals_toc_start_match):  # in case the TOC is part of recitals bc of previous split
-        recitals = recitals.char_span(0, recitals_toc_start_match.end())
-        if recitals is None:
-            toc_start  = citations.end
-        elif recitals is not None:
-            toc_start = recitals.end
-        else:
-            toc_start = enacting.start
-        enacting_with_toc = doc[toc_start:enacting.end]
+    elif recitals is not None and bool (recitals_toc_start_match):  # in case the TOC is part of recitals bc of previous split
+            recitals = recitals.char_span(0, recitals_toc_start_match.end())
+            if recitals is None:
+                toc_start  = citations.end
+            elif recitals is not None:
+                toc_start = recitals.end
+            else:
+                toc_start = enacting.start
+            enacting_with_toc = doc[toc_start:enacting.end]
 
 
     return(
