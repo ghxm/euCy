@@ -586,9 +586,6 @@ def resolve_reference_entities(entity):  # or count?
     append_this = False
 
 
-    if 'the Agreements' in entity.text:
-        print("DEBug")
-
     for token in entity:
 
         if token.is_space:

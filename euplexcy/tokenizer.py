@@ -68,7 +68,6 @@ def retokenizer(doc, name = "retokenizer", custom_retokenization_patterns = [], 
     retok_matches = []
 
     for pattern in custom_retokenization_patterns:
-        print(pattern)
         retok_matches.extend([{'span': m.span(), 'attrs': pattern['attrs'], 'align': pattern['align']} for m in re.finditer(pattern['pattern'], doc.text)])
 
     spans = []
