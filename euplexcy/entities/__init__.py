@@ -11,10 +11,12 @@ class EntitySearch(EntityRuler):
     """A custom EntityRuler object allowing for a custom Matcher (e.g. used for references)
     Custom logic, e.g. search by paragraph etc for references, is implemented in the Matcher"""
 
-    def __init__(self, matcher, add_details_as_label = False, extension_detail_prefix = "", **kwargs):
+    def __init__(self, matcher, add_details_as_label = False, extension_detail_prefix = "", debug=False, **kwargs):
 
         # super etc
         super().__init__(**kwargs)
+
+        self.debug=debug
 
         if not Span.has_extension("references"):
             Span.set_extension("references", default = None)
@@ -39,6 +41,13 @@ class EntitySearch(EntityRuler):
             span = Span (doc, start, end, label=label)
 
             span._.references = references.resolve_reference_entities(span)
+
+            if self.debug:
+                print ("TEXT")
+                print (span.text)
+                print ("REFERENCES")
+                [print (str(ref) + '\r') for ref in span._.references]
+                print('\n')
 
             if any (t.ent_type for t in span) and not self.overwrite:
                 continue

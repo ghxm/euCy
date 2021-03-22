@@ -14,8 +14,6 @@ class ReferenceMatcher:
 
     """Custom matcher for references."""
 
-    # @TODO: may be customized with additional "normal" spacy matcher object
-
     def __init__(self, label = "REFERENCE"):
 
         if not Span.has_extension("references"):
@@ -49,7 +47,6 @@ class ReferenceMatcher:
             for i, par in enumerate(art['pars']):
                 for subpar in art['subpars'][i]: # pass subpars to reference matching
                     matches.extend(reference_spans(subpar, label = self.label)) # extend the list by the list of matches (entities) in the article)
-
         return matches
 
         # @TODO return matches as Spans with label = "REFERENCE", and extension ._. for further details, such as the references contained in the Span as a list (to account for Article 1-5 bc spacy does not allow overlapping labels)
@@ -144,6 +141,7 @@ def  _has_separator(text):
         False
 
 def _is_not_act(token): # function to inspect tokens that look like acts, but may not be actual references
+
     context_l = "".join([t.text_with_ws for t in utils.get_n_left(6, token, ignore_ws = True)])
     # context_r = "".join([t.text_with_ws for t in utils.get_n_right(5, token, ignore_ws = True)])
 
@@ -582,6 +580,10 @@ def resolve_reference_entities(entity):  # or count?
     append_next_token_to = None
     append_this = False
 
+
+    if 'the Agreements' in entity.text:
+        print("DEBug")
+
     for token in entity:
 
         if token.is_space:
@@ -806,7 +808,7 @@ def resolve_reference_entities(entity):  # or count?
 
     def _num_element_combinations(elements, element_nums):
         if len(element_nums)==0:
-            return([(e, "") for e in elements if 'thereof' in e.lower().strip()])
+            return([(e, "") for e in elements])
         else:
             return [(" ".join(elements), num) for num in element_nums]
 

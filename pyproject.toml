@@ -24,7 +24,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.6"
+python = ">=3.6,<4.0"
 spacy = "^3.0.5"
 
 [tool.poetry.dev-dependencies]

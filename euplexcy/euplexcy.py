@@ -22,10 +22,12 @@ class EuplexWrapper:
     # class to run all analyses on a
     # returnns a combination of a spacy object and some additional information
 
-    def __init__(self, nlp):
+    def __init__(self, nlp, debug = False):
 
         nlp.tokenizer = tokenizer (nlp)
         nlp.add_pipe("retokenizer", first = True, name = "retokenizer")
+
+        self.debug = debug
 
         # @TODO add retokenizer pipe after tokenizer
 
@@ -36,11 +38,14 @@ class EuplexWrapper:
         if not Doc.has_extension("article_elements"):
             self.EuplexElements = elements.Elements()
 
-        self.EuplexReferenceSearch = entities.EntitySearch(name = "references", nlp = self.nlp, matcher = references.ReferenceMatcher, overwrite_ents=True)
+        self.EuplexReferenceSearch = entities.EntitySearch(name = "references", nlp = self.nlp, matcher = references.ReferenceMatcher, overwrite_ents=True, debug=self.debug)
 
         # Register extensions
         if not Doc.has_extension("complexity"):
             Doc.set_extension("complexity", default = None)
+
+        if not Doc.has_extension("readability"):
+            Doc.set_extension("readability", default = None)
 
         if not Doc.has_extension("title"):
             Doc.set_extension ("title", default=None)
@@ -72,9 +77,12 @@ class EuplexWrapper:
                     'citations': citation_count(doc),
                     'recitals': recital_count(doc),
                     'articles': article_count(doc),
+                    'structural_size': structural_size(doc, "all"),
+                    'structural_size_enacting': structural_size (doc, "enacting"),
                     'references': reference_count(doc),
                     'avg_depth': avg_depth(doc, basis='element'),
-                    'avg_article_depth': avg_depth (doc, basis='article')
+                    'avg_article_depth': avg_depth (doc, basis='article'),
+                    'words_noannex': word_count(doc, annex=False)
                 }
 
 
@@ -245,3 +253,19 @@ def reference_count(doc):
 
     return ref_count
 
+
+
+def word_count(doc, annex=False):
+    if not doc.has_extension("parts"):
+        # if function is called outside spacy pipeline
+
+        EuplexDoc = EuplexWrapper
+
+        doc = EuplexDoc(doc)
+
+    word_count = sum([len(r) for r in doc.spans['recitals']]) + sum([len(c) for c in doc.spans['citations']]) + sum([len(a) for a in doc.spans['articles']])
+
+    if annex:
+        word_count += len(doc.spans['annex'])
+
+    return word_count

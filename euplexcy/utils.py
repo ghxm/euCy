@@ -1,8 +1,8 @@
 import re
-from euplexcy.structure import Structure, text_parts
 from spacy.tokens import Doc
 from spacy.tokens.span import Span
 from collections import OrderedDict
+import euplexcy
 
 
 
@@ -101,10 +101,10 @@ def char_to_token(char, reference, input = "as_ref", output = "as_ref", alignmen
 
 def _part_argument_check(argument, part):
 
-    if isinstance(argument, Structure):
+    if isinstance(argument, euplexcy.structure.Structure):
         return argument.parts[part]
     elif isinstance(argument, Doc):
-        return text_parts(argument)[part]
+        return euplexcy.structure.text_parts(argument)[part]
     elif isinstance(argument, Span):
         return argument
     elif argument is None:
