@@ -105,18 +105,28 @@ def recitals(doc_recitals):
 
         # @TODO catch recitals with multiple paragraphs completely (cf. example_1.txt)
 
-        recital_matches = [m for m in re.finditer (euplexre.elements['recital'],
+        recital_matches_num = [m for m in re.finditer (euplexre.elements['recital'],
             recitals.text, re.MULTILINE)]
 
-        if len(recital_matches)>0:
+        recital_matches_num_clean = [mat for mat in recital_matches_num if len (mat.group (0)) > 6]
+
+        if len(recital_matches_num_clean)>0:
+            recital_matches = recital_matches_num_clean
             break
 
         # if none found yet, try for unnumbered recirals starting with whereas
-        recital_matches = [ma for ma in re.finditer(euplexre.elements['recital_whereas'], recitals.text, flags=re.MULTILINE | re.IGNORECASE)]
+        recital_matches_whereas = [ma for ma in re.finditer(euplexre.elements['recital_whereas'], recitals.text, flags=re.MULTILINE | re.IGNORECASE)]
+
+        recital_matches_whereas_clean = [mat for mat in recital_matches_whereas if len (mat.group (0)) > 6]
+
+        if len(recital_matches_whereas_clean)>0:
+            recital_matches = recital_matches_whereas_clean
+            break
+        else:
+            recital_matches = recital_matches_num
 
         break
 
-    recital_matches = [mat for mat in recital_matches if len (mat.group (0)) > 6]
 
     if isinstance (doc_recitals, Doc):
         recital_list = [doc_recitals.char_span.char_span (mat.start (), mat.end (), alignment_mode="expand") for mat
