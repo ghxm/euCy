@@ -174,7 +174,7 @@ def _has_qualifier(text):
 # resolve ranges
 def _resolve_range(text):
     # identify range in text
-    range_match = re.search (r'(?:\(*([0-9]+|[a-z]|[IXV])\)*)\s*(?:to|-)\s*(?:\(*([0-9]+|[a-z]|[IXV])\)*)', text)
+    range_match = re.search (r'(?:\(*([0-9]+(?:[a-z]{0,1})|[a-z]|[IXV])\)*)\s*(?:to|-)\s*(?:\(*([0-9]+(?:[a-z]{0,1})|[a-z]|[IXV])\)*)', text)
     if range_match is not None:
         lower = range_match.group (1)
         upper = range_match.group (2)
@@ -203,14 +203,17 @@ def _resolve_range(text):
                         lower = lower[-1]
                     if len (upper) > 1:
                         upper = upper[-1]
-                    lower = utils.letter_to_int (lower.lower ())
-                    upper = utils.letter_to_int (upper.lower)
+                    lower = utils.letter_to_int (lower.lower())
+                    upper = utils.letter_to_int (upper.lower())
                 except:
                     return [text]
         except:
             return [text]
 
-    range_nums = [i for i in range (lower, upper + 1)]
+    try:
+        range_nums = [i for i in range (lower, upper + 1)]
+    else:
+        return [text]
 
 
     if input == "num":
