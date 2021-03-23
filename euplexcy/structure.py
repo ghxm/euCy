@@ -141,7 +141,7 @@ def text_parts(doc):
         if len(expl_memo_start_matches) > 0:
 
             # match proposal start after explanatory meorandum match (to make sure, we're not capturing the "proposal for a " in the title)
-            proposal_start_match = re.search (f'(?<=.{{{expl_memo_start_matches[-1].end()}}}).*?' + euplexre.structure['proposal_start'], front.text, flags=re.MULTILINE|re.IGNORECASE|re.DOTALL)
+            proposal_start_match = re.search (f'(?<=.{{{expl_memo_start_matches[-1].end()}}}).*?{euplexre.structure["proposal_start"]}', front.text, flags=re.MULTILINE|re.IGNORECASE|re.DOTALL)
 
             if proposal_start_match is not None:
                 law_start_pos = proposal_start_match.end()
@@ -190,14 +190,14 @@ def text_parts(doc):
 
         while True:
 
-            recitals_start_match = re.search (euplexre.structure['recitals_start_whereas'], front.text,
-                                                re.MULTILINE | re.IGNORECASE)  # look for recitals
+            recitals_start_match = re.search (f'(?<=.{{{front_matter_end_match.start()}}}).*?' + euplexre.structure['recitals_start_whereas'], front.text,
+                                                re.MULTILINE | re.IGNORECASE|re.DOTALL)  # look for recitals
 
             if recitals_start_match is not None:
                 break
 
-            recitals_start_match = re.search (euplexre.structure['recitals_start_having'], front.text,
-                                                    re.MULTILINE | re.IGNORECASE)  # look for introdcued with "having regard to the following"
+            recitals_start_match = re.search (f'(?<=.{{{front_matter_end_match.start()}}}).*?' + euplexre.structure['recitals_start_having'], front.text,
+                                                    re.MULTILINE | re.IGNORECASE | re.DOTALL)  # look for introdcued with "having regard to the following"
 
             if recitals_start_match is not None:
                 break
@@ -207,8 +207,8 @@ def text_parts(doc):
 
 
         if not no_recitals:
-            citations = doc[_to_token (front_matter_end_match.end ()):_to_token (recitals_start_match.start ())]
-            recitals = doc[_to_token (recitals_start_match.start()):front.end]
+            citations = doc[_to_token (front_matter_end_match.end ()):_to_token(recitals_start_match.end ())]
+            recitals = doc[_to_token (recitals_start_match.end()):front.end]
 
 
 
