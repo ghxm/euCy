@@ -5,6 +5,7 @@ from euplexcy import structure
 from euplexcy import elements
 from euplexcy import content
 from euplexcy import entities
+from euplexcy.utils import timeout
 from euplexcy.entities import references
 from euplexcy.tokenizer import tokenizer, retokenizer
 from collections import Counter
@@ -56,7 +57,7 @@ class EuplexWrapper:
 
         # Span.set_extension("parent_elements", default = None, getter = "") # @TODO assign function to check whether span is encased by other spans and return their attributes as dict in list
 
-
+    @timeout(180)
     def __call__(self, doc):
         """Apply the pipeline component to a `Doc` object.
         doc (Doc): The `Doc` returned by the previous pipeline component.

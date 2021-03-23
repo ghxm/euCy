@@ -3,3 +3,6 @@ class NoTextFoundException(Exception):
 
 class StructureException(Exception):
     pass
+
+class TimeoutError(Exception):
+    pass

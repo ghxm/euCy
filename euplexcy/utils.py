@@ -3,6 +3,10 @@ from spacy.tokens import Doc
 from spacy.tokens.span import Span
 from collections import OrderedDict
 import euplexcy
+from functools import wraps
+import errno
+import os
+import signal
 
 
 
@@ -252,3 +256,23 @@ def int_to_roman(num):
                 break
 
     return "".join([a for a in roman_num(num)])
+
+
+
+
+
+def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
+    def decorator(func):
+        def _handle_timeout(signum, frame):
+            raise TimeoutError(error_message)
+
+        def wrapper(*args, **kwargs):
+            signal.signal(signal.SIGALRM, _handle_timeout)
+            signal.setitimer(signal.ITIMER_REAL,seconds) #used timer instead of alarm
+            try:
+                result = func(*args, **kwargs)
+            finally:
+                signal.alarm(0)
+            return result
+        return wraps(func)(wrapper)
+    return decorator
