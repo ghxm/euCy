@@ -12,6 +12,9 @@ def clean_text(text, rm_fn =True):
     text = re.sub(r'[ÕÖêöð]', '', text) # remove certain unicode characters
     text = re.sub(r'(?<=^)\s+', '', text, flags = re.MULTILINE) # remove whitespace at the beginning of a line
 
+    text = re.sub(r'\n*^((,).*)', '\g<1>', text, flags = re.MULTILINE) # put paragraphs starting with a comma back to the sentence above
+
+
     text = re.sub (r'(\sof|\sin|\swith)\s*(?:[\n\r])(Article)', '\g<1> \g<2>', text)  # fix cases where there is a newline right before an Article reference (not new Article start)
 
     # remove lines starting with @
