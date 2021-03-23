@@ -20,8 +20,9 @@ structure = {
 
 
 elements = {
-    'recital': r'(?:(?:(?<=^)\s*\([0-9]{1,3}\s*(?=\)))|(?:(?<=^)\s*[0-9]{1,3}\s*(?=\.))).*',
+    'recital': r'(?:(?:(?<=^)\s*\([0-9]{1,3}\s*(?=\)))|(?:(?<=^)\s*[0-9]{1,3}\s*(?=\.))).*[-\s]*[A-Z][A-Za-z 0-9]+',
     'recital_whereas': r'^Whereas[^\:\n]+',
+    'recital_par': r'(^)[ ]*(?=[A-Z0-9][^\n]{20,})(?!H[aA][SsVv])',
     'citation': structure['citations_start'] +r'(?:.*)',
     'article_identifier': r'^[\s]*[\[\s*]*A[A-Za-z]{6}[\s]*[0-9]{1,8}[\s]*[0-9]*[a-z]{0,1}(?:\sbis){0,1}\b(?=[\n]*[0-9]\.|[\n]*\(|[\n]*[A-Z]|[\s]*[A-Z]|[\s]*–|[\s]*-|)(?!\s*of\s|\s*shall\s|\s*is\s|[0-9]*,|[0-9]* and|[0-9]*[\n]{1,}Article(?!.*(?:shall|of| is ))|,|[a-z]|[0-9]*\([0-9]{1,3}\)|[ \t]*\([0-9]|[ ]*TFEU|[ ]*of|[ ]*shall)',
     'single_article_identifier': r'(?:^Sole\s*Article|^Single\s*Article)\s*$',

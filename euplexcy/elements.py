@@ -122,18 +122,27 @@ def recitals(doc_recitals):
         if len(recital_matches_whereas_clean)>0:
             recital_matches = recital_matches_whereas_clean
             break
+
+
+        # if none  found yet, search for normal paragraph recitals
+        recital_matches_par = [ma for ma in re.finditer(euplexre.elements['recital_par'], recitals.text, flags=re.MULTILINE | re.IGNORECASE)]
+
+        if len(recital_matches_par)>0:
+            recital_matches = recital_matches_par
         else:
             recital_matches = recital_matches_num
 
         break
 
+    recital_matches_pos = [(m.start(), recital_matches[i+1].start()) if i<len(recital_matches)-1 else (m.start(), len(recitals.text)) for i, m in enumerate(recital_matches)]
+
 
     if isinstance (doc_recitals, Doc):
-        recital_list = [doc_recitals.char_span.char_span (mat.start (), mat.end (), alignment_mode="expand") for mat
-                     in recital_matches]
+        recital_list = [doc_recitals.char_span.char_span (mat[0], mat[1], alignment_mode="expand") for mat
+                     in recital_matches_pos]
     else:
-        recital_list = [doc_recitals[utils.char_to_token (mat.start (), char_token):utils.char_to_token (mat.end (), char_token, alignment_mode="expand")]
-                     for mat in recital_matches]
+        recital_list = [doc_recitals[utils.char_to_token (mat[0], char_token):utils.char_to_token (mat[1], char_token, alignment_mode="expand")]
+                     for mat in recital_matches_pos]
 
     if Span.has_extension ("element_type"):
         for i, c in enumerate (recital_list):
