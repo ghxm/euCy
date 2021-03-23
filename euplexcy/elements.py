@@ -76,7 +76,7 @@ def citations(doc_citations):
 
         break
 
-    citation_matches = [ma for ma in citation_matches if len (ma.group (0)) > 6]
+    citation_matches = [ma for ma in citation_matches if len (ma.group (0)) > 4]
 
     if isinstance(doc_citations, Doc):
         citation_list = [doc_citations.char_span.char_span(mat.start(), mat.end(), alignment_mode="expand")for mat in citation_matches]
