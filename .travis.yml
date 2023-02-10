@@ -27,5 +27,5 @@ deploy:
     secure: PLEASE_REPLACE_ME
   on:
     tags: true
-    repo: ghxm/euplexcy
+    repo: ghxm/eucy
     python: 3.8

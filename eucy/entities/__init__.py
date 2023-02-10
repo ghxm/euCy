@@ -1,7 +1,7 @@
 from spacy.pipeline import EntityRuler
 from spacy.tokens.span import Span
 from spacy.tokens import Doc
-from euplexcy.entities import references
+from eucy.entities import references
 from spacy import util
 
 # @TODO: add EntitySearch class here

@@ -1,9 +1,9 @@
-from euplexcy import utils
-from euplexcy import regex as euplexre
+from eucy import utils
+from eucy import regex as euplexre
 from spacy.tokens import Doc
 from spacy.tokens.span import Span
 from spacy.tokens.token import Token
-from euplexcy import structure, elements
+from eucy import structure, elements
 import warnings
 import re
 import itertools

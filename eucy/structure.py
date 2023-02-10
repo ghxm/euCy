@@ -1,7 +1,7 @@
 import re
-from euplexcy import utils
-from euplexcy import exceptions
-from euplexcy import regex as euplexre
+from eucy import utils
+from eucy import exceptions
+from eucy import regex as euplexre
 from spacy.tokens import Doc
 
 

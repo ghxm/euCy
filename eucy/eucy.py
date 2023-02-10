@@ -1,13 +1,13 @@
 """Main module."""
 
 from spacy.tokens import Doc, Span
-from euplexcy import structure
-from euplexcy import elements
-from euplexcy import content
-from euplexcy import entities
-from euplexcy.utils import timeout
-from euplexcy.entities import references
-from euplexcy.tokenizer import tokenizer, retokenizer
+from eucy import structure
+from eucy import elements
+from eucy import content
+from eucy import entities
+from eucy.utils import timeout
+from eucy.entities import references
+from eucy.tokenizer import tokenizer, retokenizer
 from collections import Counter
 from spacy.pipeline.dep_parser import DEFAULT_PARSER_MODEL
 import en_core_web_sm

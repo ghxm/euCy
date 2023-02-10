@@ -1,5 +1,5 @@
 ========
-euplexCy
+euCy
 ========
 
 
@@ -26,11 +26,11 @@ spaCy pipeline component to generate complexity measures for EU legal text.
 Installation
 _____________
 
-To install the ``dev`` branch, run:
+To install the ``master`` branch, run:
 
 .. code-block:: console
 
-    $ pip install https://github.com/ghxm/euplexCy/tarball/dev
+    $ pip install https://github.com/ghxm/euplexCy/tarball/master
 
 
 
