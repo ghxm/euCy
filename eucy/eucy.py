@@ -13,16 +13,16 @@ from spacy.pipeline.dep_parser import DEFAULT_PARSER_MODEL
 import en_core_web_sm
 
 
-class EuplexWrapper:
+class EuWrapper:
 
     # Spacy pipeline component
     # (Parts called here can also be used inidividually and without the pipeline functonality)
     # but this is a wrapepr for them
 
-    # EUPLEX version of a Spacy Doc obbjects that extends it by
+    # EuCy version of a Spacy Doc obbjects that extends it by
     # a structure attribute/funciton (that stores infromation that calls resp spacy tokennts e/attributes)
     # a complexity attribute that provides statistics on the computed values from various package functions
-    # (by supplying an EuplexDoc obbject to a pakage function, it can use the additional information to make better inference)
+    # (by supplying an EuDoc obbject to a pakage function, it can use the additional information to make better inference)
     # class to run all analyses on a
     # returnns a combination of a spacy object and some additional information
 
@@ -38,11 +38,11 @@ class EuplexWrapper:
         self.nlp = nlp
 
         if not Doc.has_extension("parts"):
-            self.EuplexStructure = structure.Structure()
+            self.EuStructure = structure.Structure()
         if not Doc.has_extension("article_elements"):
-            self.EuplexElements = elements.Elements()
+            self.EuElements = elements.Elements()
 
-        self.EuplexReferenceSearch = entities.EntitySearch(name = "references", nlp = self.nlp, matcher = references.ReferenceMatcher, overwrite_ents=True, debug=self.debug)
+        self.EuReferenceSearch = entities.EntitySearch(name = "references", nlp = self.nlp, matcher = references.ReferenceMatcher, overwrite_ents=True, debug=self.debug)
 
         # Register extensions
         if not Doc.has_extension("complexity"):
@@ -71,10 +71,10 @@ class EuplexWrapper:
 
         if not doc._.no_text:
             if doc._.parts is None:
-                doc = self.EuplexStructure(doc)
+                doc = self.EuStructure(doc)
             if doc._.article_elements is None:
-                doc = self.EuplexElements(doc)
-            doc = self.EuplexReferenceSearch(doc)
+                doc = self.EuElements(doc)
+            doc = self.EuReferenceSearch(doc)
             if doc._.complexity is None:
                 # get complexity measures
                 doc._.complexity = {
@@ -101,9 +101,9 @@ def citation_count(doc):
     if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
         # if function is called outside spacy pipeline
 
-        EuplexDoc = EuplexWrapper
+        EuDoc = EuWrapper
 
-        doc = EuplexDoc(doc)
+        doc = EuDoc(doc)
 
     return(len(doc.spans['citations']))
 
@@ -112,9 +112,9 @@ def recital_count(doc):
     if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
         # if function is called outside spacy pipeline
 
-        EuplexDoc = EuplexWrapper
+        EuDoc = EuWrapper
 
-        doc = EuplexDoc(doc)
+        doc = EuDoc(doc)
 
     return(len(doc.spans['recitals']))
 
@@ -127,9 +127,9 @@ def matched_articles_count(doc):
     if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
         # if function is called outside spacy pipeline
 
-        EuplexDoc = EuplexWrapper
+        EuDoc = EuWrapper
 
-        doc = EuplexDoc(doc)
+        doc = EuDoc(doc)
 
     return (len (doc.spans['articles']))
 
@@ -138,9 +138,9 @@ def last_matched_article_num(doc):
     if not doc.has_extension ("parts") or not doc.has_extension ("article_elements"):
         # if function is called outside spacy pipeline
 
-        EuplexDoc = EuplexWrapper
+        EuDoc = EuWrapper
 
-        doc = EuplexDoc (doc)
+        doc = EuDoc (doc)
 
     # @TODO (see older analysis)
     pass
@@ -149,9 +149,9 @@ def article_count(doc):
     if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
         # if function is called outside spacy pipeline
 
-        EuplexDoc = EuplexWrapper
+        EuDoc = EuWrapper
 
-        doc = EuplexDoc(doc)
+        doc = EuDoc(doc)
 
     # @TODO methods in older analysis
     ## using distance measures
@@ -164,9 +164,9 @@ def structural_size(doc, parts = "all"):
     if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
         # if function is called outside spacy pipeline
 
-        EuplexDoc = EuplexWrapper
+        EuDoc = EuWrapper
 
-        doc = EuplexDoc(doc)
+        doc = EuDoc(doc)
 
     enacting_size = 0
 
@@ -192,9 +192,9 @@ def avg_depth(doc, basis = "element"):
     if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
         # if function is called outside spacy pipeline
 
-        EuplexDoc = EuplexWrapper
+        EuDoc = EuWrapper
 
-        doc = EuplexDoc(doc)
+        doc = EuDoc(doc)
 
     depths = {1: 0,
               2: 0,
@@ -254,9 +254,9 @@ def reference_count(doc):
     if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
         # if function is called outside spacy pipeline
 
-        EuplexDoc = EuplexWrapper
+        EuDoc = EuWrapper
 
-        doc = EuplexDoc(doc)
+        doc = EuDoc(doc)
 
     ref_count = Counter()
     ref_count['internal'] = 0
@@ -275,9 +275,9 @@ def word_count(doc, annex=False):
     if not doc.has_extension("parts"):
         # if function is called outside spacy pipeline
 
-        EuplexDoc = EuplexWrapper
+        EuDoc = EuWrapper
 
-        doc = EuplexDoc(doc)
+        doc = EuDoc(doc)
 
     word_count = sum([len(r) for r in doc.spans['recitals']]) + sum([len(c) for c in doc.spans['citations']]) + sum([len(a) for a in doc.spans['articles']])
 

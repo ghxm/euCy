@@ -1,8 +1,8 @@
 [tool]
 [tool.poetry]
-name = "euplexCy"
+name = "euCy"
 version = "0.1.0"
-homepage = "https://github.com/ghxm/euplexcy"
+homepage = "https://github.com/ghxm/eucy"
 description = "spaCy pipeline component for analyzing the complexity of EU legal texts."
 authors = ["Maximilian Haag <maximilian.haag@gsi.uni-muenchen.de>"]
 readme = "README.rst"
@@ -19,13 +19,13 @@ classifiers=[
     'Programming Language :: Python :: 3.8',
 ]
 packages = [
-    { include = "euplexcy" },
+    { include = "eucy" },
     { include = "tests", format = "sdist" },
 ]
 
 [tool.poetry.dependencies]
 python = ">=3.6,<4.0"
-spacy = "^3.0.5"
+spacy = ">=3.0.5"
 
 [tool.poetry.dev-dependencies]
 bumpversion = "*"

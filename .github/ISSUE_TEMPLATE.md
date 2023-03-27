@@ -1,4 +1,4 @@
-* euplexCy version:
+* euCy version:
 * Python version:
 * Operating System:
 

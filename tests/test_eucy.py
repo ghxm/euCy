@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Tests for `euplexer` package."""
+"""Tests for `euCy` package."""
 # pylint: disable=redefined-outer-name
 
 import pytest

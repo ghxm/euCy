@@ -1,6 +1,6 @@
 import re
 from eucy import utils
-from eucy import regex as euplexre
+from eucy import regex as eure
 from eucy import structure
 from spacy.tokens import Doc
 from spacy.tokens.span import Span
@@ -14,7 +14,7 @@ class Elements:
             Doc.set_extension("article_elements", default = None)
 
         if not Doc.has_extension("parts"):
-            self.EuplexStructure = structure.Structure()
+            self.EuStructure = structure.Structure()
 
         # Set Span-level element extensions
         if not Span.has_extension("element_type"):
@@ -31,7 +31,7 @@ class Elements:
 
         if doc._.parts is None:
 
-            doc = self.EuplexStructure(doc)
+            doc = self.EuStructure(doc)
 
         # Add SpanGroup for ...
 
@@ -65,13 +65,13 @@ def citations(doc_citations):
 
     while True:
 
-        citation_matches = [m for m in re.finditer(euplexre.elements['citation'], doc_citations.text, flags=re.MULTILINE)]
+        citation_matches = [m for m in re.finditer(eure.elements['citation'], doc_citations.text, flags=re.MULTILINE)]
 
         if len(citation_matches) > 0:
             break
 
         # try again ignoring case
-        citation_matches = [m for m in re.finditer(euplexre.elements['citation'], doc_citations.text,
+        citation_matches = [m for m in re.finditer(eure.elements['citation'], doc_citations.text,
                                                     flags=re.MULTILINE|re.IGNORECASE)]
 
         break
@@ -105,7 +105,7 @@ def recitals(doc_recitals):
 
         # @TODO catch recitals with multiple paragraphs completely (cf. example_1.txt)
 
-        recital_matches_num = [m for m in re.finditer (euplexre.elements['recital'],
+        recital_matches_num = [m for m in re.finditer (eure.elements['recital'],
             recitals.text, re.MULTILINE)]
 
         recital_matches_num_clean = [mat for mat in recital_matches_num if len (mat.group (0)) > 6]
@@ -115,7 +115,7 @@ def recitals(doc_recitals):
             break
 
         # if none found yet, try for unnumbered recirals starting with whereas
-        recital_matches_whereas = [ma for ma in re.finditer(euplexre.elements['recital_whereas'], recitals.text, flags=re.MULTILINE | re.IGNORECASE)]
+        recital_matches_whereas = [ma for ma in re.finditer(eure.elements['recital_whereas'], recitals.text, flags=re.MULTILINE | re.IGNORECASE)]
 
         recital_matches_whereas_clean = [mat for mat in recital_matches_whereas if len (mat.group (0)) > 6]
 
@@ -125,7 +125,7 @@ def recitals(doc_recitals):
 
 
         # if none  found yet, search for normal paragraph recitals
-        recital_matches_par = [ma for ma in re.finditer(euplexre.elements['recital_par'], recitals.text, flags=re.MULTILINE | re.IGNORECASE)]
+        recital_matches_par = [ma for ma in re.finditer(eure.elements['recital_par'], recitals.text, flags=re.MULTILINE | re.IGNORECASE)]
 
         if len(recital_matches_par)>0:
             recital_matches = recital_matches_par
@@ -165,13 +165,13 @@ def articles(doc_articles):
 
     while True:
 
-        article_id_matches = [m for m in re.finditer(euplexre.elements['article_identifier'], articles.text, flags=re.MULTILINE|re.IGNORECASE)]
+        article_id_matches = [m for m in re.finditer(eure.elements['article_identifier'], articles.text, flags=re.MULTILINE|re.IGNORECASE)]
 
         if len(article_id_matches) > 0:
             break
 
         # test for single article
-        article_id_matches = [m for m in re.finditer(euplexre.elements['single_article_identifier'], articles.text, flags=re.MULTILINE|re.IGNORECASE)]
+        article_id_matches = [m for m in re.finditer(eure.elements['single_article_identifier'], articles.text, flags=re.MULTILINE|re.IGNORECASE)]
 
         if len(article_id_matches) == 1:
             break
@@ -209,12 +209,12 @@ def articles(doc_articles):
 
             while True:
 
-                article_nums = [m.group(1) for m in re.finditer(euplexre.elements['article_num'], article_span.text.strip(), flags=re.IGNORECASE)]
+                article_nums = [m.group(1) for m in re.finditer(eure.elements['article_num'], article_span.text.strip(), flags=re.IGNORECASE)]
 
                 if len(article_nums) > 0:
                     break
 
-                article_nums = [ma.group(0) for ma in re.finditer(euplexre.elements['article_any_num'], article_span.text.strip())]
+                article_nums = [ma.group(0) for ma in re.finditer(eure.elements['article_any_num'], article_span.text.strip())]
 
                 break
 
@@ -250,13 +250,13 @@ def article_elements(doc_article):
 
         par_start_matches = []
 
-        par_start_matches = [m for m in re.finditer(euplexre.elements['article_num_paragraph'], article.text, flags=re.MULTILINE)]
+        par_start_matches = [m for m in re.finditer(eure.elements['article_num_paragraph'], article.text, flags=re.MULTILINE)]
 
         unnum_pars = False
 
         if len(par_start_matches) == 0:
             par_start_matches = [ma for ma in
-                                        re.finditer (euplexre.elements['article_unnum_paragraph'], article.text,
+                                        re.finditer (eure.elements['article_unnum_paragraph'], article.text,
                                                      flags=re.MULTILINE|re.DOTALL)]
             unnum_pars = True
 
@@ -319,7 +319,7 @@ def article_elements(doc_article):
         subpar_start_matches = []
 
         # mtch each par so that each par has at least one subpar
-        subpar_start_matches = [m for m in re.finditer(euplexre.elements['article_subpar_start'], par.text, flags=re.MULTILINE)]
+        subpar_start_matches = [m for m in re.finditer(eure.elements['article_subpar_start'], par.text, flags=re.MULTILINE)]
 
         subpar_list = []
 
@@ -342,7 +342,7 @@ def article_elements(doc_article):
                                                                                                     alignment_mode="expand")]
 
             # sort out chpater/section titles
-            if len(subpar_span.text.strip()) < 200 and bool(re.search(euplexre.elements['article_section_titles'], subpar_span.text, flags=re.IGNORECASE|re.MULTILINE)):
+            if len(subpar_span.text.strip()) < 200 and bool(re.search(eure.elements['article_section_titles'], subpar_span.text, flags=re.IGNORECASE|re.MULTILINE)):
                 continue
 
             # set extensions
@@ -364,7 +364,7 @@ def article_elements(doc_article):
         point_start_matches = []
 
         # mtch each subpar so that each subpar has at least one point
-        point_start_matches = [m for m in re.finditer(euplexre.elements['article_point_id'], subpar.text, flags=re.MULTILINE)]
+        point_start_matches = [m for m in re.finditer(eure.elements['article_point_id'], subpar.text, flags=re.MULTILINE)]
 
         point_list = []
 
@@ -407,7 +407,7 @@ def article_elements(doc_article):
         indent_start_matches = []
 
         # mtch each subpar so that each subpar has at least one indent
-        indent_start_matches = [m for m in re.finditer(euplexre.elements['article_indent_id'], subpar.text, flags=re.MULTILINE)]
+        indent_start_matches = [m for m in re.finditer(eure.elements['article_indent_id'], subpar.text, flags=re.MULTILINE)]
 
         indent_list = []
 

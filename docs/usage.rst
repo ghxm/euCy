@@ -2,6 +2,6 @@
 Usage
 =====
 
-To use euplexCy in a project::
+To use euCy in a project::
 
-    import euplexcy
+    import eucy

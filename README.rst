@@ -3,14 +3,14 @@ euCy
 ========
 
 
-.. image:: https://img.shields.io/pypi/v/euplexer.svg
-        :target: https://pypi.python.org/pypi/euplexer
+.. image:: https://img.shields.io/pypi/v/euer.svg
+        :target: https://pypi.python.org/pypi/euCy
 
-.. image:: https://img.shields.io/travis/ghxm/euplexer.svg
-        :target: https://travis-ci.com/ghxm/euplexer
+.. image:: https://img.shields.io/travis/ghxm/euer.svg
+        :target: https://travis-ci.com/ghxm/euCy
 
-.. image:: https://readthedocs.org/projects/euplexer/badge/?version=latest
-        :target: https://euplexer.readthedocs.io/en/latest/?badge=latest
+.. image:: https://readthedocs.org/projects/euer/badge/?version=latest
+        :target: https://euer.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
 
@@ -20,7 +20,7 @@ spaCy pipeline component to generate complexity measures for EU legal text.
 
 
 * Free software: MIT
-* Documentation: https://euplexcy.readthedocs.io.
+* Documentation: https://eucy.readthedocs.io.
 
 
 Installation
@@ -30,7 +30,7 @@ To install the ``master`` branch, run:
 
 .. code-block:: console
 
-    $ pip install https://github.com/ghxm/euplexCy/tarball/master
+    $ pip install https://github.com/ghxm/euCy/tarball/master
 
 
 

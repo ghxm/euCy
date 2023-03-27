@@ -1,4 +1,4 @@
-Welcome to euplexCy's documentation!
+Welcome to euCy's documentation!
 ======================================
 
 .. toctree::

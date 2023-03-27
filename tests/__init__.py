@@ -1,1 +1,1 @@
-"""Unit test package for euplexer."""
+"""Unit test package for euCy."""

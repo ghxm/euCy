@@ -1,7 +1,7 @@
 import re
 from eucy import utils
 from eucy import exceptions
-from eucy import regex as euplexre
+from eucy import regex as eure
 from spacy.tokens import Doc
 
 
@@ -59,19 +59,19 @@ def text_parts(doc):
     while True:
 
         # normal
-        enacting_start_match = re.search(euplexre.structure['enacting_start'], text, flags=re.MULTILINE)
+        enacting_start_match = re.search(eure.structure['enacting_start'], text, flags=re.MULTILINE)
 
         if enacting_start_match is not None:
             break
 
         # try a more lenient version
-        enacting_start_match = re.search(euplexre.structure['enacting_start_lenient'], text,flags=re.MULTILINE)
+        enacting_start_match = re.search(eure.structure['enacting_start_lenient'], text,flags=re.MULTILINE)
 
         if enacting_start_match is not None:
             break
 
         # if all else fails: try to match right before the first
-        enacting_start_match = re.search(euplexre.structure['article_start'], text, flags=re.IGNORECASE|re.MULTILINE)
+        enacting_start_match = re.search(eure.structure['article_start'], text, flags=re.IGNORECASE|re.MULTILINE)
 
         if enacting_start_match is not None:
             break
@@ -89,12 +89,12 @@ def text_parts(doc):
 
         # Normal version with "Done at"
 
-        middle_end_match = re.search (euplexre.structure['done_at_start'], middle.text, flags = re.MULTILINE | re.IGNORECASE)
+        middle_end_match = re.search (eure.structure['done_at_start'], middle.text, flags = re.MULTILINE | re.IGNORECASE)
 
         if middle_end_match is not None:
             break
 
-        middle_end_match = re.search (euplexre.structure['annex_start'], middle.text,
+        middle_end_match = re.search (eure.structure['annex_start'], middle.text,
                                        flags=re.MULTILINE | re.IGNORECASE)
 
         if middle_end_match is not None:
@@ -104,7 +104,7 @@ def text_parts(doc):
 
         try:
             pos_last_article = \
-            [m.start () for m in re.finditer (euplexre.structure['article_start'], middle.text, flags=re.MULTILINE | re.IGNORECASE)][-1]
+            [m.start () for m in re.finditer (eure.structure['article_start'], middle.text, flags=re.MULTILINE | re.IGNORECASE)][-1]
         except:
             len_enacting = float (len (middle.text))
             pos_last_article = int (len_enacting - 0.1 * len_enacting)
@@ -141,7 +141,7 @@ def text_parts(doc):
         if len(expl_memo_start_matches) > 0:
 
             # match proposal start after explanatory meorandum match (to make sure, we're not capturing the "proposal for a " in the title)
-            proposal_start_match = re.search (f'(?<=.{{{expl_memo_start_matches[-1].end()}}}).*?{euplexre.structure["proposal_start"]}', front.text, flags=re.MULTILINE|re.IGNORECASE|re.DOTALL)
+            proposal_start_match = re.search (f'(?<=.{{{expl_memo_start_matches[-1].end()}}}).*?{eure.structure["proposal_start"]}', front.text, flags=re.MULTILINE|re.IGNORECASE|re.DOTALL)
 
             if proposal_start_match is not None:
                 law_start_pos = proposal_start_match.end()
@@ -149,12 +149,12 @@ def text_parts(doc):
         else:
             law_start_pos = 0
 
-        front_matter_end_match = re.search (f'(?<=.{{{law_start_pos}}}).*?' + euplexre.structure['citations_start'], front.text, re.MULTILINE|re.DOTALL)
+        front_matter_end_match = re.search (f'(?<=.{{{law_start_pos}}}).*?' + eure.structure['citations_start'], front.text, re.MULTILINE|re.DOTALL)
 
         if front_matter_end_match is not None:
             break
 
-        front_matter_end_match = re.search (euplexre.structure['citations_start'], front.text, re.MULTILINE|re.IGNORECASE) # more relaced version ignoring case
+        front_matter_end_match = re.search (eure.structure['citations_start'], front.text, re.MULTILINE|re.IGNORECASE) # more relaced version ignoring case
 
         if front_matter_end_match is not None:
             break
@@ -162,13 +162,13 @@ def text_parts(doc):
         # if no citations
         no_citations = True
 
-        front_matter_end_match = re.search (euplexre.structure['recitals_start_whereas'], front.text, re.MULTILINE|re.IGNORECASE) # look for recitals
+        front_matter_end_match = re.search (eure.structure['recitals_start_whereas'], front.text, re.MULTILINE|re.IGNORECASE) # look for recitals
 
         if front_matter_end_match is not None:
             break
 
         if front_matter_end_match is None:
-            front_matter_end_match = re.search (euplexre.structure['recitals_start_having'], front.text,
+            front_matter_end_match = re.search (eure.structure['recitals_start_having'], front.text,
                                                 re.MULTILINE | re.IGNORECASE)  # look for introdcued with "having regard to the following"
 
         if front_matter_end_match is not None:
@@ -190,13 +190,13 @@ def text_parts(doc):
 
         while True:
 
-            recitals_start_match = re.search (f'(?<=.{{{front_matter_end_match.start()}}}).*?' + euplexre.structure['recitals_start_whereas'], front.text,
+            recitals_start_match = re.search (f'(?<=.{{{front_matter_end_match.start()}}}).*?' + eure.structure['recitals_start_whereas'], front.text,
                                                 re.MULTILINE | re.IGNORECASE|re.DOTALL)  # look for recitals
 
             if recitals_start_match is not None:
                 break
 
-            recitals_start_match = re.search (f'(?<=.{{{front_matter_end_match.start()}}}).*?' + euplexre.structure['recitals_start_having'], front.text,
+            recitals_start_match = re.search (f'(?<=.{{{front_matter_end_match.start()}}}).*?' + eure.structure['recitals_start_having'], front.text,
                                                     re.MULTILINE | re.IGNORECASE | re.DOTALL)  # look for introdcued with "having regard to the following"
 
             if recitals_start_match is not None:
@@ -218,9 +218,9 @@ def text_parts(doc):
     enacting = middle
     enacting_with_toc = enacting
 
-    enacting_toc_start_match = re.search (euplexre.structure['toc_start'], enacting.text[:len (enacting.text) // 4], flags=re.MULTILINE|re.IGNORECASE)
+    enacting_toc_start_match = re.search (eure.structure['toc_start'], enacting.text[:len (enacting.text) // 4], flags=re.MULTILINE|re.IGNORECASE)
     if recitals is not None:
-        recitals_toc_start_match = re.search (euplexre.structure['toc_start'], recitals.text, flags=re.MULTILINE|re.IGNORECASE)
+        recitals_toc_start_match = re.search (eure.structure['toc_start'], recitals.text, flags=re.MULTILINE|re.IGNORECASE)
 
 
     # remove TOC and store in enacting (vs enacting_with_toc), if no TOC enacting = enacting_with_toc
@@ -228,7 +228,7 @@ def text_parts(doc):
     if bool (enacting_toc_start_match):
 
         # identify start of first article, but exclude the first few lines in case Article 1 is part of the TOC
-        article_1_start_match = re.search(euplexre.structure['article_1_start'], enacting.text[100:len (enacting.text) // 4], flags=re.MULTILINE|re.IGNORECASE)
+        article_1_start_match = re.search(eure.structure['article_1_start'], enacting.text[100:len (enacting.text) // 4], flags=re.MULTILINE|re.IGNORECASE)
 
         if article_1_start_match is not None:
             enacting = enacting[utils.char_to_token(100+article_1_start_match.start(), enacting):]

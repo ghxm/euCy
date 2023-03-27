@@ -1,5 +1,5 @@
 from eucy import utils
-from eucy import regex as euplexre
+from eucy import regex as eure
 from spacy.tokens import Doc
 from spacy.tokens.span import Span
 from spacy.tokens.token import Token
@@ -20,9 +20,9 @@ class ReferenceMatcher:
             Span.set_extension("references", default = None)
 
         if not Doc.has_extension("parts"):
-            self.EuplexStructure = structure.Structure()
+            self.EuStructure = structure.Structure()
         if not Doc.has_extension("article_elements"):
-            self.EuplexElements = elements.Elements()
+            self.EuElements = elements.Elements()
 
         self.label = label
 
@@ -35,9 +35,9 @@ class ReferenceMatcher:
 
         # article for article in match_Ref
         if not Span.has_extension("element_type") or doc.spans.get('articles', None) is None:
-            doc = self.EuplexStructure (doc)
+            doc = self.EuStructure (doc)
         if not Doc.has_extension("article_elements") or doc._.article_elements is None:
-            doc = self.EuplexElements(doc)
+            doc = self.EuElements(doc)
 
         matches = []
 
@@ -55,7 +55,7 @@ class ReferenceMatcher:
 
 def _has_element_num(text):
     words = text.split()
-    words = [w for w in words if re.search(euplexre.entities['references']['elements'], w) is None]
+    words = [w for w in words if re.search(eure.entities['references']['elements'], w) is None]
     text = " ".join(words)
     if re.search(r'[0-9]|[XVI]{1,3}(?![a-z])|(?:^|\s)\([a-z]{1,2}\)(?:\.| |$)|^[IVX]+$', text.strip()) is not None:
         return True
@@ -63,8 +63,8 @@ def _has_element_num(text):
         return False
 
 def _elements(text):
-    elements_list =  [m for m in re.findall ('[a-z]*' + euplexre.entities['references']['elements'] + '[a-z]*', text, flags=re.MULTILINE|re.IGNORECASE)]
-    return([e for e in elements_list if re.search('^' + euplexre.entities['references']['elements'] + '$', e, flags=re.MULTILINE|re.IGNORECASE) is not None])
+    elements_list =  [m for m in re.findall ('[a-z]*' + eure.entities['references']['elements'] + '[a-z]*', text, flags=re.MULTILINE|re.IGNORECASE)]
+    return([e for e in elements_list if re.search('^' + eure.entities['references']['elements'] + '$', e, flags=re.MULTILINE|re.IGNORECASE) is not None])
 
 
 def _has_element(text):
@@ -83,7 +83,7 @@ def _has_cap_element(text):
         return False
 
 def _has_subpar_element(text):
-    if re.search(euplexre.entities['references']['subpar_elements'], text, flags=re.IGNORECASE) is not None:
+    if re.search(eure.entities['references']['subpar_elements'], text, flags=re.IGNORECASE) is not None:
         return True
     else:
         return False
@@ -94,15 +94,15 @@ def _has_subpar_element_num (token):
             return True
         text = token.text
 
-    if re.search(euplexre.entities['references']['element_nums'], text) is not None:
+    if re.search(eure.entities['references']['element_nums'], text) is not None:
         return True
     else:
         return False
 
 
 def _acts(text):
-    acts_list = [m for m  in re.findall ('[a-z]*' + euplexre.entities['references']['act_types'] + '[a-z]*', text, flags=re.MULTILINE|re.IGNORECASE)]
-    return [a for a in acts_list if re.search('^' + euplexre.entities['references']['act_types'] + '$', a, flags=re.MULTILINE|re.IGNORECASE) is not None]
+    acts_list = [m for m  in re.findall ('[a-z]*' + eure.entities['references']['act_types'] + '[a-z]*', text, flags=re.MULTILINE|re.IGNORECASE)]
+    return [a for a in acts_list if re.search('^' + eure.entities['references']['act_types'] + '$', a, flags=re.MULTILINE|re.IGNORECASE) is not None]
 
 def _has_act(text):
     if len (_acts (text)) > 0:
@@ -112,7 +112,7 @@ def _has_act(text):
 
 def _has_act_identifier(text): # check whether text contains an act identifier
     words = text.split()
-    words = [w for w in words if re.search(euplexre.entities['references']['act_types'], w) is None]
+    words = [w for w in words if re.search(eure.entities['references']['act_types'], w) is None]
     text = " ".join(words)
     if re.search(r'\([A-Z]{2,}\)|of\s*the|to\s*the|[0-9]|\/|between\sthe|International', text) is not None:
         return True
@@ -165,7 +165,7 @@ def _has_range_indicator(token_text):
         return False
 
 def _has_qualifier(text):
-    if re.search(euplexre.entities['references']['qualifiers'], text) is not None:
+    if re.search(eure.entities['references']['qualifiers'], text) is not None:
         return True
     else:
         return False
@@ -247,15 +247,15 @@ def match_reference_text(span, match_on = "all"):
 
     for sentence in sentences:
         # 1 Capture all element .... of ... act/act_el
-        matches_element_act = re.finditer (euplexre.entities['references']['ref_element_acts'], sentence.text, flags=re.IGNORECASE|re.MULTILINE)
+        matches_element_act = re.finditer (eure.entities['references']['ref_element_acts'], sentence.text, flags=re.IGNORECASE|re.MULTILINE)
         [add_to_match_list (match, sentence, type="element_act") for match in matches_element_act]
 
         # 2 Capture all element .*
-        matches_element = re.finditer (euplexre.entities['references']['ref_elements'], sentence.text, flags=re.IGNORECASE|re.MULTILINE)
+        matches_element = re.finditer (eure.entities['references']['ref_elements'], sentence.text, flags=re.IGNORECASE|re.MULTILINE)
         [add_to_match_list (match, sentence, type="element") for match in matches_element]
 
         # 3 Capture all acts
-        matches_act = re.finditer (euplexre.entities['references']['ref_acts'], sentence.text, flags=re.IGNORECASE|re.MULTILINE)
+        matches_act = re.finditer (eure.entities['references']['ref_acts'], sentence.text, flags=re.IGNORECASE|re.MULTILINE)
         [add_to_match_list (match, sentence, type="act") for match in matches_act]
 
     return ref_match_list
@@ -389,7 +389,7 @@ def reference_spans(doclike, label = "REFERENCE", match_on = "all"):
                 return match_splits
 
             # split any ref stop word (anything thats not an element/act or a number) + element/act
-            new_ref_pos = [(m.start(), m.end()) for reg in euplexre.entities['split_references'] for m in re.finditer(reg, match['match'], flags=re.IGNORECASE|re.MULTILINE) ]
+            new_ref_pos = [(m.start(), m.end()) for reg in eure.entities['split_references'] for m in re.finditer(reg, match['match'], flags=re.IGNORECASE|re.MULTILINE) ]
 
             match_splits = _split_match_dict(match, new_ref_pos)
 
@@ -436,10 +436,10 @@ def reference_spans(doclike, label = "REFERENCE", match_on = "all"):
                 continue
 
             # rule out any non-references via regex dict
-            if any([re.search(p, match_token_text, flags=re.IGNORECASE) is not None for p in euplexre.entities['non_references']]):
+            if any([re.search(p, match_token_text, flags=re.IGNORECASE) is not None for p in eure.entities['non_references']]):
                 continue
             # if no element and only act and act is Article
-            if re.search(euplexre.entities['references']['elements'], match_token_text, flags=re.IGNORECASE) is None and re.search(euplexre.entities['references']['act_types'], match_token_text, flags=re.IGNORECASE) is None:
+            if re.search(eure.entities['references']['elements'], match_token_text, flags=re.IGNORECASE) is None and re.search(eure.entities['references']['act_types'], match_token_text, flags=re.IGNORECASE) is None:
                 continue
 
             # if reference is merely self ref to whole act (list re.findall construction is necessary bc regex matches whitespace)
@@ -458,7 +458,7 @@ def reference_spans(doclike, label = "REFERENCE", match_on = "all"):
             # for acts/elements only check for this before (use n left)
             if _has_act(match_token_text) and not _has_element(match_token_text):
 
-                act_match = re.search(euplexre.entities['references']['act_types'], match_token_text.strip(), flags=re.MULTILINE | re.IGNORECASE)
+                act_match = re.search(eure.entities['references']['act_types'], match_token_text.strip(), flags=re.MULTILINE | re.IGNORECASE)
 
 
 
@@ -552,7 +552,7 @@ def resolve_reference_entities(entity):  # or count?
 
             # if this -> int
             if act is not None:
-                if re.search(f'^\s*this\s*{euplexre.entities["references"]["act_type_prefixes"]}*\s*{euplexre.entities["references"]["act_subtype_prefixes"]}*\s*(?:[a-z0-9-,]+\s+){{0,1}}{euplexre.entities["references"]["act_types"]}',
+                if re.search(f'^\s*this\s*{eure.entities["references"]["act_type_prefixes"]}*\s*{eure.entities["references"]["act_subtype_prefixes"]}*\s*(?:[a-z0-9-,]+\s+){{0,1}}{eure.entities["references"]["act_types"]}',
                              act, flags=re.MULTILINE) is not None:
                     relation = "internal"
 

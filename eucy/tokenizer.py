@@ -7,12 +7,12 @@ import re
 from spacy import util
 import warnings
 
-def tokenizer(nlp, name = "tokenizer", custom_exceptions = [], custom_token_match_patterns = [], overwrite_euplexcy_default = False):
+def tokenizer(nlp, name = "tokenizer", custom_exceptions = [], custom_token_match_patterns = [], overwrite_eucy_default = False):
 
     default_exceptions = nlp.Defaults.tokenizer_exceptions
-    default_euplexcy_exceptions = []
+    default_eucy_exceptions = []
 
-    default_euplexcy_token_match_patterns = []
+    default_eucy_token_match_patterns = []
 
 
 
@@ -20,12 +20,12 @@ def tokenizer(nlp, name = "tokenizer", custom_exceptions = [], custom_token_matc
     # @TODO: keep this for functionality reasons and add excpetions/token:mathces in a custom retokenizator?
     # otherwise normal splitting on token_match matches does not work (e.g. punctuation)
 
-    if overwrite_euplexcy_default:
+    if overwrite_eucy_default:
         custom_exceptions = custom_exceptions
         custom_token_match_patterns = custom_token_match_patterns
     else:
-        custom_exceptions =  default_euplexcy_exceptions + custom_exceptions
-        custom_token_match_patterns = default_euplexcy_token_match_patterns + custom_token_match_patterns
+        custom_exceptions =  default_eucy_exceptions + custom_exceptions
+        custom_token_match_patterns = default_eucy_token_match_patterns + custom_token_match_patterns
 
     custom_token_match = lambda x: [re.compile (p).match(x) for p in custom_token_match_patterns]
 
@@ -39,10 +39,10 @@ def tokenizer(nlp, name = "tokenizer", custom_exceptions = [], custom_token_matc
 
 
 @Language.component("retokenizer")
-def retokenizer(doc, name = "retokenizer", custom_retokenization_patterns = [], overwrite_euplexcy_default = False):
+def retokenizer(doc, name = "retokenizer", custom_retokenization_patterns = [], overwrite_eucy_default = False):
 
 
-    euplexcy_default_patterns = [
+    eucy_default_patterns = [
         {'attrs': {"POS": "NUM"},
          'pattern': r'\((?:[0-9]+|[a-zA-Z]{1,3})\)',
          'align': 'expand'}, # (1) (a) (EC)
@@ -60,8 +60,8 @@ def retokenizer(doc, name = "retokenizer", custom_retokenization_patterns = [], 
          'align': "strict"}
     ]
 
-    if not overwrite_euplexcy_default:
-        custom_retokenization_patterns = euplexcy_default_patterns + custom_retokenization_patterns
+    if not overwrite_eucy_default:
+        custom_retokenization_patterns = eucy_default_patterns + custom_retokenization_patterns
 
     # for regex in list of custom retokenization rules
     # create dict of match, attrs
