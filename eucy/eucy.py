@@ -1,6 +1,7 @@
 """Main module."""
 
 from spacy.tokens import Doc, Span
+from spacy.language import Language
 from eucy import structure
 from eucy import elements
 from eucy import content
@@ -11,7 +12,7 @@ from eucy.tokenizer import tokenizer, retokenizer
 from collections import Counter
 from spacy.pipeline.dep_parser import DEFAULT_PARSER_MODEL
 import en_core_web_sm
-
+import warnings
 
 class EuWrapper:
 
@@ -28,6 +29,9 @@ class EuWrapper:
 
     def __init__(self, nlp, debug = False):
 
+        if not isinstance(nlp, Language):
+            raise TypeError("nlp must be a spacy Language object")
+
         nlp.tokenizer = tokenizer (nlp)
         nlp.add_pipe("retokenizer", last = True, name = "retokenizer")
 
@@ -37,10 +41,8 @@ class EuWrapper:
 
         self.nlp = nlp
 
-        if not Doc.has_extension("parts"):
-            self.EuStructure = structure.Structure()
-        if not Doc.has_extension("article_elements"):
-            self.EuElements = elements.Elements()
+        self.EuStructure = structure.Structure()
+        self.EuElements = elements.Elements()
 
         self.EuReferenceSearch = entities.EntitySearch(name = "references", nlp = self.nlp, matcher = references.ReferenceMatcher, overwrite_ents=True, debug=self.debug)
 
@@ -64,14 +66,20 @@ class EuWrapper:
         RETURNS (Doc): The modified `Doc` object.
         """
 
+        # @TODO if possible, check if doc or string is passed and convert to doc if string
+        if isinstance(doc, str):
+            doc = self.nlp(doc)
+
         doc._.title = content.find_title (doc)
 
         if (len (doc.text.strip ()) - len (doc._.title.strip ())) < 500:
             doc._.no_text = True
 
         if not doc._.no_text:
-            if doc._.parts is None:
+            if doc._.parts is None and hasattr(self, 'EuStructure'):
                 doc = self.EuStructure(doc)
+            else:
+                warnings.warn("doc object does not have Structure Component.")
             if doc._.article_elements is None:
                 doc = self.EuElements(doc)
             doc = self.EuReferenceSearch(doc)

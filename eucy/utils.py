@@ -7,8 +7,24 @@ from functools import wraps
 import errno
 import os
 import signal
+from bs4 import BeautifulSoup
 
 
+def text_from_html(html):
+
+    """Extract text from html"""
+
+    if isinstance(html, BeautifulSoup):
+        soup = html
+    else:
+        soup = BeautifulSoup(html, 'lxml')
+
+
+    text = soup.get_text(separator="\n\n", strip = True)
+
+    text = re.sub(r'(?<!\n)\n{1}(?!\n)', "", text, flags=re.MULTILINE)
+
+    return text
 
 def clean_text(text, rm_fn =True):
 
