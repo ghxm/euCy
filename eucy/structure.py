@@ -138,15 +138,21 @@ def text_parts(doc):
 
         expl_memo_start_matches =  [m for m in re.finditer(r'(?=explanatory\s*memorandum)', front.text, flags=re.IGNORECASE)]
 
+        law_start_pos = None
+
         if len(expl_memo_start_matches) > 0:
 
             # match proposal start after explanatory meorandum match (to make sure, we're not capturing the "proposal for a " in the title)
             proposal_start_match = re.search (f'(?<=.{{{expl_memo_start_matches[-1].end()}}}).*?{eure.structure["proposal_start"]}', front.text, flags=re.MULTILINE|re.IGNORECASE|re.DOTALL)
+            law_start_match = re.search (f'(?<=.{{{expl_memo_start_matches[-1].end()}}}).*?{eure.structure["proposal_law_start"]}', front.text, flags=re.MULTILINE|re.IGNORECASE|re.DOTALL)
 
             if proposal_start_match is not None:
                 law_start_pos = proposal_start_match.end()
+            elif law_start_match is not None:
+                law_start_pos = law_start_match.end()
 
-        else:
+
+        if law_start_pos is None:
             law_start_pos = 0
 
         front_matter_end_match = re.search (f'(?<=.{{{law_start_pos}}}).*?' + eure.structure['citations_start'], front.text, re.MULTILINE|re.DOTALL)
@@ -154,7 +160,7 @@ def text_parts(doc):
         if front_matter_end_match is not None:
             break
 
-        front_matter_end_match = re.search (eure.structure['citations_start'], front.text, re.MULTILINE|re.IGNORECASE) # more relaced version ignoring case
+        front_matter_end_match = re.search (eure.structure['citations_start'], front.text, re.MULTILINE|re.IGNORECASE) # more relaxed version ignoring case
 
         if front_matter_end_match is not None:
             break
@@ -188,6 +194,7 @@ def text_parts(doc):
 
         recitals_start_match = None
 
+        # look for recitals
         while True:
 
             recitals_start_match = re.search (f'(?<=.{{{front_matter_end_match.start()}}}).*?' + eure.structure['recitals_start_whereas'], front.text,
@@ -201,15 +208,48 @@ def text_parts(doc):
 
             if recitals_start_match is not None:
                 break
+
+
+            # there's a possibility the recitals were captured as citations if they're not introduced with "whereas" or "having regard to the following"
+            # in this case, we need to remove them from the citations
+
+            # search for the start of a recital
+            for reg in [eure.elements['recital_num_start'],
+                        eure.elements['recital_whereas_start']]:
+                recitals_start_match = re.search(f'(?<=.{{{front_matter_end_match.start()}}}).*?' + reg, front.text, re.MULTILINE | re.IGNORECASE | re.DOTALL)
+                if recitals_start_match is not None:
+                    break
+
+            if recitals_start_match is not None:
+                break
             else:
                 no_recitals = True # if there are no recitals, but for whatever reason this has not been detected yet
                 break
 
-
         if not no_recitals:
-            citations = doc[_to_token (front_matter_end_match.end ()):_to_token(recitals_start_match.end ())]
             recitals = doc[_to_token (recitals_start_match.end()):front.end]
 
+        citations_start_match = None
+
+        # look for citations
+        while True:
+
+                citations_start_match = re.search (f'(?<=.{{{front_matter_end_match.start()}}}).*?' + eure.structure['citations_start'], front.text,
+                                                    re.MULTILINE | re.IGNORECASE|re.DOTALL)  # look for citations
+
+                if citations_start_match is not None:
+                    break
+                else:
+                    no_citations = True
+                    break
+
+
+
+        if not no_citations:
+            if recitals_start_match is None:
+                citations = doc[_to_token (citations_start_match.end()):front.end]
+            else:
+                citations = doc[_to_token (citations_start_match.end()):_to_token (recitals_start_match.end())]
 
 
     # @TODO: Annex

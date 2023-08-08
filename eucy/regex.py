@@ -15,14 +15,15 @@ structure = {
     'toc_start': r'.(?=TABLE[\s]*OF[\s]*CONTENTS|\sTOC\s)',
     'toc_start_lenient': r'^(?=[\s*]Contents)',
     'toc_lines': r'(?:^[A-Za-z ]+\s+[0-9IXV]+\s+[^\n]{2,200}$)+?(?=\s+(?:^[A-Za-z ]+\s+[0-9IXV]+\s+[^\n]{2,200}$))',
-    'proposal_start': r'^\s*proposal\s*for\s*'
+    'proposal_start': r'^\s*proposal\s*for\s*',
+    'proposal_law_start': r'^\s*(?:[AZ]*\s*Regulation|Regulation\s*of|Directive\s*of|Recommendation\s*for\s*a|Decision\s*on\s*|[AZ]{4,}\s*Decision)'
 }
 
 
 elements = {
-    'recital': r'(?:(?:(?<=^)\s*\({0,1}[0-9]{1,3}\s*(?=\)))|(?:(?<=^)\s*[0-9]{1,3}\s*(?=\.))).*[-\s]*[A-Z0-9][A-Za-z 0-9]+',
-    'recital_whereas': r'^Whereas[^\:\n]+',
-    'recital_par': r'(^)[ ]*(?=[A-Z0-9][^\n]{20,})(?!H[aA][SsVv])',
+    'recital_num_start': r'(?:(?:(?<=^)\s*\({0,1}[0-9]{1,3}\s*(?=\)))|(?:(?<=^)\s*[0-9]{1,3}\s*(?=\.))).',
+    'recital_whereas_start': r'^Whereas[^\:\n]+',
+    'recital_par_start': r'(^)[ ]*(?=[A-Z0-9][^\n]{20,})(?!H[aA][SsVv])',
     'citation': structure['citations_start'] +r'(?:.*)',
     'article_identifier': r'^[\s]*[\[\s*]*A[A-Za-z]{6}[\s]*[0-9]{1,8}[\s]*[0-9]*[a-z]{0,1}(?:\sbis){0,1}(?=[\n]*[0-9]\.|[\n]*\(|[\n]*[A-Z]|[\s]*[A-Z]|[\s]*–|[\s]*-)(?!\s*of\s|\s*shall\s|\s*is\s|[0-9]*,|[0-9]* and|[0-9]*[\n]{1,}Article(?!.*(?:shall|of| is ))|,|[0-9]*\([0-9]{1,3}\)|[ \t]*\([0-9]|[ ]*TFEU|[ ]*of|[ ]*shall)',
     'single_article_identifier': r'(?:^Sole\s*Article|^Single\s*Article)\s*$',
@@ -36,6 +37,9 @@ elements = {
     'article_indent_id': r'(?:^[ ]*-)',
     'article_section_titles': r'(?:^[ ]*(?:Section|Chapter|TITLE))'
 }
+
+elements['recital_num'] = elements['recital_num_start'] + r'*[-\s]*[A-Z0-9].+'
+
 
 entities = {
         'references': {
@@ -62,3 +66,6 @@ entities['references']['act_types_el'] = re.sub (r'thereof', "(?:(?:(?:of|with|i
 entities['references']['ref_element_acts'] = f'{entities["references"]["elements"]}.{{0,35}}of{entities["references"]["act_identifiers"]}'
 entities['references']['ref_elements'] =f'{entities["references"]["elements"]}\s*(?:\s|{entities["references"]["elements"]}|{entities["references"]["separators"]}|{entities["references"]["prefixes"]}|{entities["references"]["element_nums"]})+'
 entities['references']['ref_acts'] = f'(?:{entities["references"]["prefixes"]}|{entities["references"]["qualifiers"]})*{entities["references"]["act_type_prefixes"]}*\s*{entities["references"]["act_subtype_prefixes"]}*\s*(?:[a-z0-9-,]+\s+){{0,1}}{entities["references"]["act_types"]}\s*{entities["references"]["act_identifiers"]}'
+
+
+celex_ids = '[\dEC](?:20|1\d)\d\d[A-Z][A-Z]?(?:\d{3,4}(?:\(\d\d\))?|/TXT)'

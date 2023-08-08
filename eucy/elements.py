@@ -99,50 +99,66 @@ def recitals(doc_recitals):
 
     char_token = utils.chars_to_tokens_dict (recitals, input="as_ref", output="as_ref")
 
+
+
+    def get_recitals(recital_matches):
+        recital_matches_pos = [(m.start(), recital_matches[i + 1].start()) if i < len(recital_matches) - 1 else (
+        m.start(), len(recitals.text)) for i, m in enumerate(recital_matches)]
+
+        if isinstance(doc_recitals, Doc):
+            recital_list = [doc_recitals.char_span.char_span(mat[0], mat[1], alignment_mode="expand") for mat
+                            in recital_matches_pos]
+        else:
+            recital_list = [doc_recitals[utils.char_to_token(mat[0], char_token):utils.char_to_token(mat[1], char_token,
+                                                                                                     alignment_mode="expand")]
+                            for mat in recital_matches_pos]
+
+        return recital_list
+
     recital_matches = []
+
+    recital_list = []
 
     while True:
 
+        # @TODO differentiate between parentheses recitals and dot recitals and, in case of mixed captures, decide which to use (e.g. 52017PC0603)
         # @TODO catch recitals with multiple paragraphs completely (cf. example_1.txt)
 
-        recital_matches_num = [m for m in re.finditer (eure.elements['recital'],
+        recital_matches_num = [m for m in re.finditer (eure.elements['recital_num_start'],
             recitals.text, re.MULTILINE)]
 
-        recital_matches_num_clean = [mat for mat in recital_matches_num if len (mat.group (0)) > 6]
+        recital_list = get_recitals(recital_matches_num)
 
-        if len(recital_matches_num_clean)>0:
-            recital_matches = recital_matches_num_clean
+        # remove recitals with less than 10 words
+        recital_list = [rec for rec in recital_list if len(rec) > 10]
+
+        if len(recital_list)>0:
             break
 
         # if none found yet, try for unnumbered recirals starting with whereas
-        recital_matches_whereas = [ma for ma in re.finditer(eure.elements['recital_whereas'], recitals.text, flags=re.MULTILINE | re.IGNORECASE)]
+        recital_matches_whereas = [ma for ma in re.finditer(eure.elements['recital_whereas_start'], recitals.text, flags=re.MULTILINE | re.IGNORECASE)]
 
-        recital_matches_whereas_clean = [mat for mat in recital_matches_whereas if len (mat.group (0)) > 6]
+        recital_list = get_recitals(recital_matches_whereas)
 
-        if len(recital_matches_whereas_clean)>0:
-            recital_matches = recital_matches_whereas_clean
+        # remove recitals with less than 10 words
+        recital_list = [rec for rec in recital_list if len(rec) > 10]
+
+        if len(recital_list)>0:
             break
 
 
         # if none  found yet, search for normal paragraph recitals
-        recital_matches_par = [ma for ma in re.finditer(eure.elements['recital_par'], recitals.text, flags=re.MULTILINE | re.IGNORECASE)]
+        recital_matches_par = [ma for ma in re.finditer(eure.elements['recital_par_start'], recitals.text, flags=re.MULTILINE | re.IGNORECASE)]
 
-        if len(recital_matches_par)>0:
-            recital_matches = recital_matches_par
-        else:
-            recital_matches = recital_matches_num
+        recital_list = get_recitals(recital_matches_par)
 
-        break
+        # remove recitals with less than 10 words
+        recital_list = [rec for rec in recital_list if len(rec) > 10]
 
-    recital_matches_pos = [(m.start(), recital_matches[i+1].start()) if i<len(recital_matches)-1 else (m.start(), len(recitals.text)) for i, m in enumerate(recital_matches)]
+        if len(recital_list)>0:
+            break
 
 
-    if isinstance (doc_recitals, Doc):
-        recital_list = [doc_recitals.char_span.char_span (mat[0], mat[1], alignment_mode="expand") for mat
-                     in recital_matches_pos]
-    else:
-        recital_list = [doc_recitals[utils.char_to_token (mat[0], char_token):utils.char_to_token (mat[1], char_token, alignment_mode="expand")]
-                     for mat in recital_matches_pos]
 
     if Span.has_extension ("element_type"):
         for i, c in enumerate (recital_list):
