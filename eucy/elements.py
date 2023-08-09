@@ -140,8 +140,8 @@ def recitals(doc_recitals):
 
         recital_list = get_recitals(recital_matches_whereas)
 
-        # remove recitals with less than 10 words
-        recital_list = [rec for rec in recital_list if len(rec) > 10]
+        # remove recitals with less than 6 words
+        recital_list = [rec for rec in recital_list if len(rec) > 6]
 
         if len(recital_list)>0:
             break
@@ -152,8 +152,8 @@ def recitals(doc_recitals):
 
         recital_list = get_recitals(recital_matches_par)
 
-        # remove recitals with less than 10 words
-        recital_list = [rec for rec in recital_list if len(rec) > 10]
+        # remove recitals with less than 6 words
+        recital_list = [rec for rec in recital_list if len(rec) > 6]
 
         if len(recital_list)>0:
             break
