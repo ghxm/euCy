@@ -1,5 +1,5 @@
 import re
-from spacy.tokens import Doc
+from spacy.tokens import Doc, SpanGroup
 from spacy.tokens.span import Span
 from collections import OrderedDict
 import eucy
@@ -292,3 +292,114 @@ def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
             return result
         return wraps(func)(wrapper)
     return decorator
+
+
+def element_list_to_spans(element_list, level = 0, element_type = None, article_num = None):
+
+    """Recursive function to loop through element lists and annotate the span by article number and element type, num and level"""
+
+    return_list = []
+
+    for i, element in enumerate(element_list, 1):
+        if isinstance(element, list):
+            element_list_to_spans(element, level = level + 1, element_type = element_type, article_num = article_num)
+        else:
+            element._.article = article_num
+            element._.type = element_type
+            element._.num = i
+            element._.level = level
+
+            return_list.append(element)
+
+    return return_list
+
+
+def article_elements_to_spangroup(doc):
+    """Converts ._.article_elements from to SpanGroups and adds them to doc.spans"""
+
+    # create span group for article elements
+    doc.spans['article_elements'] = SpanGroup(doc)
+
+    # set span level attributes
+    Span.set_extension('article', default=None, force=True)
+    Span.set_extension('type', default=None, force=True)
+    Span.set_extension('level', default=None, force=True)
+    Span.set_extension('num', default=None, force=True)
+
+    # get all article elements
+    article_elements = [span for span in doc._.article_elements]
+
+    for art_num, article_elements in enumerate(article_elements, 1):
+
+        for element_type, elements in  article_elements.items():
+
+            doc.spans['article_elements'].extend(element_list_to_spans(elements, element_type = element_type, article_num = art_num))
+
+
+    return doc
+
+
+
+
+
+def get_element_by_match(doc, match_text, method='exact'):
+    """Returns the element span of the given match text"""
+
+    # @TODO
+
+    raise NotImplementedError
+
+
+def get_element_by_num(doc, citation=None, recital=None, article=None, par=None, subpar=None, point=None, indent=None):
+    """Returns the span of the given element"""
+
+    # make sure all elements are either None or int
+    assert all([isinstance(x, int) or x is None for x in [citation, recital, article, par, subpar, point, indent]]), "All element arguments must be either None or int"
+
+    # make sure article elements specify the required level correctly
+    assert not any([par, subpar, point, indent]) and article is None, "Article elements must specify article number"
+
+    assert not any([subpar, point, indent]) and par is None, "Paragraph elements must specify paragraph number"
+
+    if par is not None and subpar is None:
+        subpar = 1
+
+    # reduce all int arguments by one to match the list index
+    citation = citation - 1 if citation is not None else None
+    recital = recital - 1 if recital is not None else None
+    article = article - 1 if article is not None else None
+    par = par - 1 if par is not None else None
+    subpar = subpar - 1 if subpar is not None else None
+    point = point - 1 if point is not None else None
+    indent = indent - 1 if indent is not None else None
+
+    if citation is not None:
+        return doc.spans['citations'][citation]
+    elif recital is not None:
+        return doc.spans['recitals'][recital]
+    elif article is not None and not any([par, subpar, point, indent]):
+        return doc.spans['articles'][article]
+    elif article is not None and any([par, subpar, point, indent]):
+        if indent is not None:
+            return doc.spans['article_elements'][article].get('indents')[par][subpar][indent]
+        elif point is not None:
+            return doc.spans['article_elements'][article].get('points')[par][subpar][point]
+        elif subpar is not None:
+            return doc.spans['article_elements'][article].get('subpars')[par][subpar]
+        elif par is not None:
+            return doc.spans['article_elements'][article].get('pars')[par]
+    else:
+        raise ValueError("No element specified")
+
+# @TODO function to change content of doc/span/element
+
+
+
+
+
+
+
+
+
+
+

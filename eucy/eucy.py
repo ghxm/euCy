@@ -1,6 +1,6 @@
 """Main module."""
 
-from spacy.tokens import Doc, Span
+from spacy.tokens import Doc
 from spacy.language import Language
 from eucy import structure
 from eucy import elements
@@ -102,6 +102,12 @@ class EuWrapper:
 
 
         return doc
+
+
+
+
+
+
 
 
 def citation_count(doc):
