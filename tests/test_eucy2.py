@@ -19,6 +19,10 @@ def get_results():
 
     results = pd.read_csv('data/hhk_reliability.csv')
 
+    # make corrections
+    results.loc[results['celex_id'] == '52011PC0654', 'doc_proposal_articles'] = 12
+    results.loc[results['celex_id'] == '52007PC0491', 'doc_proposal_recitals'] = 7
+
     return results
 
 cases_celex_ids = get_results()['celex_id'].unique()
@@ -161,14 +165,14 @@ def test_citations(eudoc, results, request):
 
     celex_id = request_celex_id(request)
 
-    assert eudoc._.complexity['citations'] == pytest.approx(result_by_id(celex_id, results)['citations'], 0.05, 1)
+    assert eudoc._.complexity['citations'] == pytest.approx(result_by_id(celex_id, results)['citations'], abs=0)
 
 def test_recitals(eudoc, results, request):
     """Test number of recitals detection"""
 
     celex_id = request_celex_id(request)
 
-    assert eudoc._.complexity['recitals'] == pytest.approx(result_by_id(celex_id, results)['recitals'], 0.05, 1)
+    assert eudoc._.complexity['recitals'] == pytest.approx(result_by_id(celex_id, results)['recitals'], abs=0)
 
 def test_articles(eudoc, results, request):
 
@@ -176,7 +180,7 @@ def test_articles(eudoc, results, request):
 
     celex_id = request_celex_id(request)
 
-    assert eudoc._.complexity['articles'] == pytest.approx(result_by_id(celex_id, results)['articles'], 0.2, 5)
+    assert eudoc._.complexity['articles'] == pytest.approx(result_by_id(celex_id, results)['articles'],  abs=0)
 
 def test_references_internal(eudoc, results, request):
 
@@ -184,7 +188,7 @@ def test_references_internal(eudoc, results, request):
 
         celex_id = request_celex_id(request)
 
-        assert eudoc._.complexity['references']['internal'] == pytest.approx(result_by_id(celex_id, results)['ref_int_enacting'], 0.3, 8)
+        assert eudoc._.complexity['references']['internal'] == pytest.approx(result_by_id(celex_id, results)['ref_int_enacting'], abs=3)
 
 
 def test_references_external(eudoc, results, request):
@@ -193,7 +197,7 @@ def test_references_external(eudoc, results, request):
 
         celex_id = request_celex_id(request)
 
-        assert eudoc._.complexity['references']['external'] == pytest.approx(result_by_id(celex_id, results)['ref_ext_enacting'], 0.3, 8)
+        assert eudoc._.complexity['references']['external'] == pytest.approx(result_by_id(celex_id, results)['ref_ext_enacting'], abs=3)
 
 def test_references_total(eudoc, results, request):
 
@@ -201,7 +205,7 @@ def test_references_total(eudoc, results, request):
 
     celex_id = request_celex_id(request)
 
-    assert eudoc._.complexity['references']['internal'] + eudoc._.complexity['references']['external'] == pytest.approx(result_by_id(celex_id, results)['ref_enacting'], 0.3, 8)
+    assert eudoc._.complexity['references']['internal'] + eudoc._.complexity['references']['external'] == pytest.approx(result_by_id(celex_id, results)['ref_enacting'], abs=3)
 
 
 

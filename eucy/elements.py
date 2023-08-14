@@ -127,16 +127,40 @@ def recitals(doc_recitals):
         recital_matches_num = [m for m in re.finditer (eure.elements['recital_num_start'],
             recitals.text, re.MULTILINE)]
 
+        recitals_parentheses = []
+        recitals_dot = []
+        recitals_other = []
+
+        # try to filter out bad matches by checking for the type (parentheses, dot, other)
+        for match in recital_matches_num:
+            if re.search(r'^[\s\(]*[0-9]+\s*\)', match.group(0)) is not None:
+                recitals_parentheses.append(match)
+            elif re.search(r'^[\s]*[0-9]+\s*\.', match.group(0)) is not None:
+                recitals_dot.append(match)
+            else:
+                recitals_other.append(match)
+
+
+        # if there are only parentheses recitals, use them
+        if len(recitals_parentheses) > 0 and len(recitals_parentheses) > len(recitals_dot) and len(recitals_parentheses) > len(recitals_other) == 0:
+            recital_matches_num = recitals_parentheses
+        # @TODO maybe use a more refined approach including dot recitals / other recitals if they are not too far away from the parentheses recitals
+
+
+
+
         recital_list = get_recitals(recital_matches_num)
 
         # remove recitals with less than 10 words
-        recital_list = [rec for rec in recital_list if len(rec) > 10]
+        recital_list = [rec for rec in recital_list if len(rec) > 6]
 
         if len(recital_list)>0:
             break
 
         # if none found yet, try for unnumbered recirals starting with whereas
         recital_matches_whereas = [ma for ma in re.finditer(eure.elements['recital_whereas_start'], recitals.text, flags=re.MULTILINE | re.IGNORECASE)]
+
+
 
         recital_list = get_recitals(recital_matches_whereas)
 
