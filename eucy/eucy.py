@@ -6,7 +6,7 @@ from eucy import structure
 from eucy import elements
 from eucy import content
 from eucy import entities
-from eucy.utils import timeout
+from eucy.utils import timeout, get_element_by_num, get_element_by_match
 from eucy.entities import references
 from eucy.tokenizer import tokenizer, retokenizer
 from collections import Counter
@@ -57,6 +57,9 @@ class EuWrapper:
             Doc.set_extension ("title", default=None)
             Doc.set_extension ("no_text", default=False)
 
+
+        #
+
         # Span.set_extension("parent_elements", default = None, getter = "") # @TODO assign function to check whether span is encased by other spans and return their attributes as dict in list
 
     @timeout(180)
@@ -66,9 +69,12 @@ class EuWrapper:
         RETURNS (Doc): The modified `Doc` object.
         """
 
-        # @TODO if possible, check if doc or string is passed and convert to doc if string
+        # if possible, check if doc or string is passed and convert to doc if string
         if isinstance(doc, str):
             doc = self.nlp(doc)
+        elif not isinstance(doc, Doc):
+            raise TypeError("doc must be a spacy Doc object or a string")
+
 
         doc._.title = content.find_title (doc)
 

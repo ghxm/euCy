@@ -315,7 +315,9 @@ def element_list_to_spans(element_list, level = 0, element_type = None, article_
 
 
 def article_elements_to_spangroup(doc):
-    """Converts ._.article_elements from to SpanGroups and adds them to doc.spans"""
+    """Converts ._.article_elements from to a SpanGroup (doc.spans['article_elements']) and adds the type, num, level attributes as extensions"""
+
+    # @TODO alternative: add elements as extension to articles span group
 
     # create span group for article elements
     doc.spans['article_elements'] = SpanGroup(doc)
@@ -391,7 +393,173 @@ def get_element_by_num(doc, citation=None, recital=None, article=None, par=None,
     else:
         raise ValueError("No element specified")
 
-# @TODO function to change content of doc/span/element
+
+def replace_text(doc, new_text):
+    """Adds replacement text for a span/doc object and returns the object with the new in the ._.replacement_text attribute
+
+    Parameters:
+    doc (Doc or Span): The doc or span object to add the replacement text to
+    new_text (str): The new text to add to the ._.replacement_text attribute
+
+    Returns:
+    doc (Doc or Span): The doc or span object with the new text in the ._.replacement_text attribute
+
+    """
+
+    # check if doc is a doc or span object
+    assert isinstance(doc, (Span)), "doc must be a Doc or Span object"
+
+    # check if new text is a string
+    assert isinstance(new_text, str), "New text must be a string"
+
+    # check if replacement_text attribute exists
+    if not doc.has_extension('replacement_text'):
+        if isinstance(doc, Doc):
+            Doc.set_extension('replacement_text', default=None, force=True)
+        elif isinstance(doc, Span):
+            Span.set_extension('replacement_text', default=None, force=True)
+
+    # set replacement text
+    doc._.replacement_text = new_text
+
+    return doc
+
+
+
+def get_element_text(element, replace_text = replace_text):
+    """Returns the text of the given element
+
+    Parameters:
+    element (Span): The element to get the text from
+    replace_text (bool): If True, returns the replacement text (if not None), otherwise returns the original text
+
+
+    Returns:
+    text (str): The text of the element
+
+
+    """
+
+    assert isinstance(element, (Span, Doc)), "element must be a Span/Doc object"
+
+    if replace_text and element.has_extension('replacement_text') and element._.replacement_text is not None:
+        text = element._.replacement_text
+    else:
+        text = element.text
+
+    return text
+
+
+def element_text_to_markup(text, element_type=None, element_num=None, keep_open=False):
+    """Converts the given text to markup using the given element type and number
+
+    Parameters:
+    text (str): The text to convert to markup
+    element_type (str): The element type to use for the markup
+    element_num (int): The element number to use for the markup
+    keep_open (bool): Whether to keep the element open (i.e. not add the closing tag)
+
+    Returns:
+    markup (str): The markup of the text
+
+    """
+
+    if element_type is None:
+        return text
+    else:
+        return f"<{element_type} num='{element_num if element_num else ''}'>\n{text}\n{ f'</{element_type}>' if not keep_open else ''}"
+
+
+def element_to_markup(element, element_type = None, element_num = None, replace_text = False, keep_open = False):
+
+    """Converts the given element to markup using the given element type and number
+
+    Parameters:
+    element (Span): The element to convert to markup
+    element_type (str): The element type to use for the markup
+    element_num (int): The element number to use for the markup
+    replace_text (bool): Whether to use the replacement text instead of the original text
+    keep_open (bool): Whether to keep the element open (i.e. not add the closing tag)
+
+    Returns:
+    markup (str): The markup of the element
+
+    """
+
+    element_text = get_element_text(element, replace_text = replace_text)
+
+    return element_text_to_markup(element_text, element_type = element_type, element_num = element_num, keep_open = keep_open)
+
+
+
+
+
+def elements_to_text(doc, element_markup = True, replace_text = True, article_elements = True):
+    """Re-builds the text of the law from the detected elements and returns the text
+
+    Parameters:
+    doc (Doc): The doc object to rebuild the text from
+    element_markup (bool): If True, the elements will be annotated in the text using element markup (useful if re-reading the text into a euCy doc object)
+    replace_text (bool): If True, the element text will be replaced with the text from the ._.replacement_text attribute
+    article_elements (bool): If True, the article elements will be considered to create the text (otherwise the full article text will be used)
+
+    Returns:
+    text (str): The rebuilt text
+
+    """
+
+    # @TODO add option to set order of recitals/citations (set flag in eudoc?)
+    # @TODO add (optional) marginal text (like 'whereas', 'have decided as follows', 'done at', etc.)
+
+    text = ''
+
+    # get citations
+
+    text += '<citations>\n' if element_markup else '\n'
+    for c_i, citation in enumerate(doc.spans['citations'], 1):
+        text += element_to_markup(citation, element_type = 'citation', element_num=c_i, replace_text = replace_text) if element_markup else get_element_text(citation, replace_text = replace_text) + '\n'
+    text += '</citations>\n' if element_markup else '\n'
+
+    # get recitals
+    text += '<recitals>\n' if element_markup else '\n'
+    for r_i, recital in enumerate(doc.spans['recitals'], 1):
+        text += element_to_markup(recital, element_type = 'recital', element_num=r_i, replace_text = replace_text) if element_markup else get_element_text(recital, replace_text = replace_text) + '\n'
+    text += '</recitals>\n' if element_markup else '\n'
+
+    # get articles
+    text += '<enactingTerms>\n' if element_markup else '\n'
+
+    if not article_elements:
+        for a_i, article in enumerate(doc.spans['articles'], 1):
+            text += element_to_markup(article, element_type = 'article', element_num=a_i, replace_text = replace_text) if element_markup else get_element_text(article, replace_text = replace_text) + '\n'
+    else:
+
+        for a_i, article in enumerate(doc._.article_elements, 1):
+            # open a paragraph
+            text += '<paragraph>\n' if element_markup else '\n'
+            for p_i, par in enumerate(article.get('pars', []), 1):
+                text += element_to_markup(par, element_type = 'par', element_num=p_i, replace_text = replace_text, keep_open=True) if element_markup else get_element_text(par, replace_text = replace_text) + '\n'
+
+            # sub-paragraphs
+            for sp_i, subpar in enumerate(article.get('subpars', []), 1):
+                text += element_to_markup(subpar, element_type = 'subpar', element_num=sp_i, replace_text = replace_text) if element_markup else get_element_text(subpar, replace_text = replace_text) + '\n'
+
+            # @TODO (Hier weiter) How to handle points and indents? Can they be at the same level? Are they mutually exclusive? If they are not, do indents come first?
+            #   Check style guide for this: https://publications.europa.eu/code/en/en-120000.htm
+
+
+            text += '</paragraph>\n' if element_markup else '\n'
+
+
+
+
+
+
+
+    text += '</enactingTerms>\n' if element_markup else '\n'
+
+
+    return text
 
 
 
