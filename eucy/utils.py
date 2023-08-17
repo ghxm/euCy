@@ -10,6 +10,17 @@ import signal
 from bs4 import BeautifulSoup
 
 
+def flatten_gen(l):
+    for i in l:
+        if isinstance(i, list):
+            yield from flatten_gen(i)
+        else:
+            yield i
+
+def flatten(l):
+    return list(flatten_gen(l))
+
+
 def text_from_html(html):
 
     """Extract text from html"""
@@ -335,7 +346,7 @@ def article_elements_to_spangroup(doc):
 
         for element_type, elements in  article_elements.items():
 
-            doc.spans['article_elements'].extend(element_list_to_spans(elements, element_type = element_type, article_num = art_num))
+            doc.spans['article_elements'].extend(element_list_to_spans(elements, element_type = element_type[:-1], article_num = art_num))
 
 
     return doc
@@ -450,7 +461,7 @@ def get_element_text(element, replace_text = replace_text):
     return text
 
 
-def element_text_to_markup(text, element_type=None, element_num=None, keep_open=False):
+def element_text_to_markup(text, element_type=None, element_num=None, keep_open=False, **kwargs):
     """Converts the given text to markup using the given element type and number
 
     Parameters:
@@ -458,19 +469,22 @@ def element_text_to_markup(text, element_type=None, element_num=None, keep_open=
     element_type (str): The element type to use for the markup
     element_num (int): The element number to use for the markup
     keep_open (bool): Whether to keep the element open (i.e. not add the closing tag)
+    kwargs (dict): Additional attributes to add to the element
 
     Returns:
     markup (str): The markup of the text
 
     """
 
+    quote = "'"
+
     if element_type is None:
         return text
     else:
-        return f"<{element_type} num='{element_num if element_num else ''}'>\n{text}\n{ f'</{element_type}>' if not keep_open else ''}"
+        return f"<{element_type}{' ' if element_num is not None else ''}{f'num={quote}{element_num}{quote}' if element_num is not None else ''}{' ' if kwargs else ''}{' '.join([f'{k}={quote}{v}{quote}' for k, v in kwargs.items()])}{'' if keep_open else ''}>" + text + (f"</{element_type}>" if not keep_open else "")
 
 
-def element_to_markup(element, element_type = None, element_num = None, replace_text = False, keep_open = False):
+def element_to_markup(element, element_type = None, element_num = None, replace_text = False, keep_open = False, **kwargs):
 
     """Converts the given element to markup using the given element type and number
 
@@ -480,6 +494,7 @@ def element_to_markup(element, element_type = None, element_num = None, replace_
     element_num (int): The element number to use for the markup
     replace_text (bool): Whether to use the replacement text instead of the original text
     keep_open (bool): Whether to keep the element open (i.e. not add the closing tag)
+    kwargs (dict): Additional attributes to add to the element
 
     Returns:
     markup (str): The markup of the element
@@ -488,7 +503,7 @@ def element_to_markup(element, element_type = None, element_num = None, replace_
 
     element_text = get_element_text(element, replace_text = replace_text)
 
-    return element_text_to_markup(element_text, element_type = element_type, element_num = element_num, keep_open = keep_open)
+    return element_text_to_markup(element_text, element_type = element_type, element_num = element_num, keep_open = keep_open, **kwargs)
 
 
 
@@ -509,25 +524,48 @@ def elements_to_text(doc, element_markup = True, replace_text = True, article_el
     """
 
     # @TODO add option to set order of recitals/citations (set flag in eudoc?)
+    #     -> check span starts
     # @TODO add (optional) marginal text (like 'whereas', 'have decided as follows', 'done at', etc.)
+    #     -> anything outside the span range of the articles, recitals, citations, etc. is considered marginal text
+
+    assert isinstance(doc, Doc), "doc must be a Doc object"
+    assert doc.spans.get('articles') is not None, "doc must have the articles span"
+    assert doc.spans.get('citations') is not None, "doc must have the citations span"
+    assert doc.spans.get('recitals') is not None, "doc must have the recitals span"
+
+    if article_elements:
+        assert doc.has_extension('article_elements'), "doc must have the article_elements extension"
+        doc = article_elements_to_spangroup(doc)
 
     text = ''
 
-    # get citations
+    # PREAMBLE
+    text += '\n\n<preamble>\n\n' if element_markup else '\n\n'
 
-    text += '<citations>\n' if element_markup else '\n'
-    for c_i, citation in enumerate(doc.spans['citations'], 1):
-        text += element_to_markup(citation, element_type = 'citation', element_num=c_i, replace_text = replace_text) if element_markup else get_element_text(citation, replace_text = replace_text) + '\n'
-    text += '</citations>\n' if element_markup else '\n'
+    # @TODO add distinction between numbered and unnumbered recitals
 
-    # get recitals
-    text += '<recitals>\n' if element_markup else '\n'
-    for r_i, recital in enumerate(doc.spans['recitals'], 1):
-        text += element_to_markup(recital, element_type = 'recital', element_num=r_i, replace_text = replace_text) if element_markup else get_element_text(recital, replace_text = replace_text) + '\n'
-    text += '</recitals>\n' if element_markup else '\n'
+    preamble_order = ['citations', 'recitals']
+
+    # check if recitals or citations come first
+    if doc.spans['recitals'][0].start < doc.spans['citations'][0].start:
+        preamble_order.reverse()
+
+    for element_type in preamble_order:
+
+        text += '\n'
+
+        for e_i, element in enumerate(doc.spans[element_type], 1):
+            text += '\n'
+            text += element_to_markup(element, element_type = element_type[:-1], element_num=e_i, replace_text = replace_text) if element_markup else get_element_text(element, replace_text = replace_text) + '\n'
+            text += '\n'
+
+        text += '\n'
+
+
+    text += '\n\n</preamble>\n\n' if element_markup else '\n\n'
 
     # get articles
-    text += '<enactingTerms>\n' if element_markup else '\n'
+    text += '\n\n<enactingTerms>\n\n' if element_markup else '\n\n'
 
     if not article_elements:
         for a_i, article in enumerate(doc.spans['articles'], 1):
@@ -535,33 +573,62 @@ def elements_to_text(doc, element_markup = True, replace_text = True, article_el
     else:
 
         for a_i, article in enumerate(doc._.article_elements, 1):
-            # open a paragraph
-            text += '<paragraph>\n' if element_markup else '\n'
+            # paragraph
+            # @TODO add distinction between numbered and unnumbered paragraphs
+
+            text += '\n'
+
+            text += f"\n<article num='{a_i}'>\n" if element_markup else f"Article {a_i}.\n\n"
+
             for p_i, par in enumerate(article.get('pars', []), 1):
-                text += element_to_markup(par, element_type = 'par', element_num=p_i, replace_text = replace_text, keep_open=True) if element_markup else get_element_text(par, replace_text = replace_text) + '\n'
 
-            # sub-paragraphs
-            for sp_i, subpar in enumerate(article.get('subpars', []), 1):
-                text += element_to_markup(subpar, element_type = 'subpar', element_num=sp_i, replace_text = replace_text) if element_markup else get_element_text(subpar, replace_text = replace_text) + '\n'
+                text += element_to_markup(par, element_type = 'paragraph', element_num=p_i, replace_text = replace_text, keep_open=True) if element_markup else get_element_text(par, replace_text = replace_text) + '\n'
 
-            # @TODO (Hier weiter) How to handle points and indents? Can they be at the same level? Are they mutually exclusive? If they are not, do indents come first?
-            #   Check style guide for this: https://publications.europa.eu/code/en/en-120000.htm
+                # get list of sub-paragraph elements from the spangroups
+                subpar_elements = [e for e in doc.spans.get('article_elemenets', SpanGroup(doc)) if e._.get('type') in ['subpar', 'indent', 'point']]
+
+                # filter out elements that are not in the current paragraph
+                subpar_elements = [e for e in subpar_elements if e.start >= par.start and e.end <= par.end]
+
+                # sort the elements by start position
+                subpar_elements = sorted(subpar_elements, key=lambda e: e.start)
+
+                subpar_open = False
+
+                # check if there are any sub-paragraph elements
+                for subpar_element in subpar_elements:
+
+                    if subpar_element._.get('type', '') == 'subpar':
+                        # Open sub-paragraph and add the element
+                        element_to_markup(subpar_element, element_type = 'subpar', element_num=subpar_element._.get('num'), replace_text = replace_text, keep_open=True) if element_markup else get_element_text(subpar_element, replace_text = replace_text) + '\n'
+                        subpar_open = True
+                        open_subpar_span = subpar_element
+                    elif subpar_element._.get('type', '') in ['indent', 'point']:
+
+                        if subpar_open:
+                            # check if element outside subpar
+                            if subpar_element.start > open_subpar_span.end:
+                                # close subpar
+                                text += '\n</subpar>\n' if element_markup else '\n'
+                                subpar_open = False
+
+                        # add indent
+                        element_to_markup(subpar_element, element_type = subpar_element._.get('type', ''), element_num=subpar_element._.get('num'), replace_text = replace_text, keep_open=False) if element_markup else get_element_text(subpar_element, replace_text = replace_text) + '\n'
+
+                # close subpar if still open
+                if subpar_open:
+                    text += '\n</subpar>\n' if element_markup else '\n'
+                    subpar_open = False
+
+                text += '\n</paragraph>\n' if element_markup else '\n'
+
+            text += '\n</article>\n' if element_markup else '\n\n'
 
 
-            text += '</paragraph>\n' if element_markup else '\n'
-
-
-
-
-
-
-
-    text += '</enactingTerms>\n' if element_markup else '\n'
+    text += '\n\n</enactingTerms>\n\n' if element_markup else '\n\n'
 
 
     return text
-
-
 
 
 
