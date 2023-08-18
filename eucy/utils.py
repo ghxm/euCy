@@ -21,6 +21,146 @@ def flatten(l):
     return list(flatten_gen(l))
 
 
+def _replace_text(doc, new_text, keep_ws = True, deletion_threshold = None):
+
+    """Setter for the replacement_text extension. Should not be used directly."""
+
+    assert isinstance(doc, (Doc, Span)), "doc must be a Doc or Span object. Are you trying to use the _set_replacement_text() function directly?"
+
+    if not isinstance(new_text, str):
+        raise TypeError("Replacement text must be a string")
+
+    if not keep_ws:
+        return new_text
+
+    # make sure the replacement_text extension exists
+    if not doc.has_extension('replacement_text'):
+        doc.set_extension('replacement_text', default = None)
+        doc.set_extension('deleted', default = False)
+
+
+    # get ws at beginning and end of original text
+    ws_start = re.search(r'^\s*', doc.text).group(0)
+    ws_end = re.search(r'\s*$', doc.text_with_ws).group(0)
+
+    # add ws to new text
+    new_text = ws_start + new_text + ws_end
+
+    if deletion_threshold is not None and new_text.strip() > deletion_threshold:
+        doc._.deleted = True
+
+    # set replacement text
+    doc._.replacement_text = new_text
+
+
+
+
+_extensions = {
+
+    # @TODO add delete() extension method
+
+    "Doc": [
+        {
+            'name': 'article_elements',
+            'default': None
+        },
+        {
+            'name': 'parts',
+            'default': None
+        },
+        {
+            'name': 'title',
+            'default': None
+        },
+        {
+            'name': 'readability',
+            'default': None
+        },
+        {
+            'name': 'complexity',
+            'default': None
+        },
+        {
+            'name': 'no_text',
+            'default': None
+        },
+        {
+            'name': 'deleted',
+            'default': False
+        },
+        {
+            'name': 'replacement_text',
+            'default': None
+        },
+        {
+            'name': 'replace_text',
+            'method': _replace_text,
+        }
+    ],
+    "Span": [
+        {
+            'name': 'deleted',
+            'default': False
+        },
+        {
+            'name': 'replacement_text',
+            'default': None
+        },
+        {
+            'name': 'replace_text',
+            'method': _replace_text,
+        }
+    ]
+}
+
+
+
+
+def set_extensions(doc = None, force = False):
+    """Set all Doc and Span extensions required by euCy."""
+
+    if isinstance(doc, Doc):
+
+        for extension in _extensions['Doc']:
+            try:
+                doc.set_extension(**extension, force = force)
+            except ValueError:
+                pass
+
+        return None
+
+    elif isinstance(doc, Span):
+
+        for extension in _extensions['Span']:
+            try:
+                doc.set_extension(**extension, force = force)
+            except ValueError:
+                pass
+
+        return None
+
+    elif doc is None:
+
+            for extension in _extensions['Doc']:
+                try:
+                    Doc.set_extension(**extension, force = force)
+                except ValueError:
+                    pass
+
+            for extension in _extensions['Span']:
+                try:
+                    Span.set_extension(**extension, force = force)
+                except ValueError:
+                    pass
+
+            return None
+
+    else:
+
+        raise TypeError("doc must be a Doc or Span object")
+
+
+
 def text_from_html(html):
 
     """Extract text from html"""
@@ -405,47 +545,17 @@ def get_element_by_num(doc, citation=None, recital=None, article=None, par=None,
         raise ValueError("No element specified")
 
 
-def replace_text(doc, new_text):
-    """Adds replacement text for a span/doc object and returns the object with the new in the ._.replacement_text attribute
-
-    Parameters:
-    doc (Doc or Span): The doc or span object to add the replacement text to
-    new_text (str): The new text to add to the ._.replacement_text attribute
-
-    Returns:
-    doc (Doc or Span): The doc or span object with the new text in the ._.replacement_text attribute
-
-    """
-
-    # check if doc is a doc or span object
-    assert isinstance(doc, (Span)), "doc must be a Doc or Span object"
-
-    # check if new text is a string
-    assert isinstance(new_text, str), "New text must be a string"
-
-    # check if replacement_text attribute exists
-    if not doc.has_extension('replacement_text'):
-        if isinstance(doc, Doc):
-            Doc.set_extension('replacement_text', default=None, force=True)
-        elif isinstance(doc, Span):
-            Span.set_extension('replacement_text', default=None, force=True)
-
-    # set replacement text
-    doc._.replacement_text = new_text
-
-    return doc
-
-
-
-def get_element_text(element, replace_text = replace_text):
+def get_element_text(element, replace_text = False):
     """Returns the text of the given element
 
-    Parameters:
+    Parameters
+    ----------
     element (Span): The element to get the text from
     replace_text (bool): If True, returns the replacement text (if not None), otherwise returns the original text
 
 
-    Returns:
+    Returns
+    -------
     text (str): The text of the element
 
 

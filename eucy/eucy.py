@@ -6,7 +6,7 @@ from eucy import structure
 from eucy import elements
 from eucy import content
 from eucy import entities
-from eucy.utils import timeout, get_element_by_num, get_element_by_match
+from eucy.utils import timeout, get_element_by_num, get_element_by_match, set_extensions
 from eucy.entities import references
 from eucy.tokenizer import tokenizer, retokenizer
 from collections import Counter
@@ -16,18 +16,26 @@ import warnings
 
 class EuWrapper:
 
-    # Spacy pipeline component
-    # (Parts called here can also be used inidividually and without the pipeline functonality)
-    # but this is a wrapepr for them
+    """EuCy wrapper class for a spacy Language object
+        (not a real pipeline component)"""
 
-    # EuCy version of a Spacy Doc obbjects that extends it by
-    # a structure attribute/funciton (that stores infromation that calls resp spacy tokennts e/attributes)
-    # a complexity attribute that provides statistics on the computed values from various package functions
-    # (by supplying an EuDoc obbject to a pakage function, it can use the additional information to make better inference)
-    # class to run all analyses on a
-    # returnns a combination of a spacy object and some additional information
+
 
     def __init__(self, nlp, debug = False):
+
+        """
+        Initialize EuWrapper object
+
+
+        Parameters
+        ----------
+        nlp : spacy Language object
+            Spacy Language object to be wrapped
+        debug : bool, optional
+            Whether to print debug information, by default False
+
+
+        """
 
         if not isinstance(nlp, Language):
             raise TypeError("nlp must be a spacy Language object")
@@ -47,15 +55,8 @@ class EuWrapper:
         self.EuReferenceSearch = entities.EntitySearch(name = "references", nlp = self.nlp, matcher = references.ReferenceMatcher, overwrite_ents=True, debug=self.debug)
 
         # Register extensions
-        if not Doc.has_extension("complexity"):
-            Doc.set_extension("complexity", default = None)
+        set_extensions()
 
-        if not Doc.has_extension("readability"):
-            Doc.set_extension("readability", default = None)
-
-        if not Doc.has_extension("title"):
-            Doc.set_extension ("title", default=None)
-            Doc.set_extension ("no_text", default=False)
 
 
         #
@@ -64,9 +65,16 @@ class EuWrapper:
 
     @timeout(180)
     def __call__(self, doc):
-        """Apply the pipeline component to a `Doc` object.
-        doc (Doc): The `Doc` returned by the previous pipeline component.
-        RETURNS (Doc): The modified `Doc` object.
+        """
+        Call EuCy wrapper on a spacy Doc object and add EU law specific attributes to the doc object. Add `SpanGroup` objects (`spans` attribute) and fills various custom extensions (`_` attribute) to the doc object.
+
+        Parameters
+        ----------
+        doc : spacy Doc object
+
+        Returns
+        -------
+        spacy Doc object with added attributes
         """
 
         # if possible, check if doc or string is passed and convert to doc if string
@@ -87,6 +95,9 @@ class EuWrapper:
             else:
                 warnings.warn("doc object does not have Structure Component.")
             if doc._.article_elements is None:
+
+                # @TODO implement solution for modified docs (spangroups already exist) (either solve this here or on modify.modify_text())
+
                 doc = self.EuElements(doc)
             doc = self.EuReferenceSearch(doc)
             if doc._.complexity is None:

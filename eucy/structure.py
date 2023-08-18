@@ -15,9 +15,18 @@ class Structure:
             Doc.set_extension("parts", default = None)
 
     def __call__(self, doc):
-        """Apply the pipeline component to a `Doc` object.
-        doc (Doc): The `Doc` returned by the previous pipeline component.
-        RETURNS (Doc): The modified `Doc` object.
+        """Split the document into its parts and store them in _.parts
+
+        Parameters
+        ----------
+        doc: spacy.tokens.Doc
+            the document to be split
+
+        Returns
+        -------
+        spacy.tokens.Doc
+            the document with the parts stored in _.parts
+
         """
 
         # split it and store parts
