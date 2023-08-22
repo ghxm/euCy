@@ -92,13 +92,14 @@ class EuWrapper:
         if not doc._.no_text:
             if doc._.parts is None and hasattr(self, 'EuStructure'):
                 doc = self.EuStructure(doc)
+            elif doc._.parts is not None:
+                pass
             else:
                 warnings.warn("doc object does not have Structure Component.")
+
             if doc._.article_elements is None:
-
-                # @TODO implement solution for modified docs (spangroups already exist) (either solve this here or on modify.modify_text())
-
                 doc = self.EuElements(doc)
+
             doc = self.EuReferenceSearch(doc)
             if doc._.complexity is None:
                 # get complexity measures
@@ -115,21 +116,14 @@ class EuWrapper:
                 }
 
 
-            # @TODO use lambada function to call with paramters (e.g. strucutral size)
-
-
         return doc
-
-
-
-
 
 
 
 
 def citation_count(doc):
 
-    if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
+    if not 'citations' in doc.spans:
         # if function is called outside spacy pipeline
 
         EuDoc = EuWrapper
@@ -140,7 +134,7 @@ def citation_count(doc):
 
 def recital_count(doc):
 
-    if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
+    if not 'recitals' in doc.spans:
         # if function is called outside spacy pipeline
 
         EuDoc = EuWrapper
@@ -150,6 +144,8 @@ def recital_count(doc):
     return(len(doc.spans['recitals']))
 
 def count_articles():
+
+    raise NotImplementedError
 
     # @TODO: various methods for article counting (see older analysis)
     pass
@@ -166,6 +162,9 @@ def matched_articles_count(doc):
 
 
 def last_matched_article_num(doc):
+
+    raise NotImplementedError
+
     if not doc.has_extension ("parts") or not doc.has_extension ("article_elements"):
         # if function is called outside spacy pipeline
 

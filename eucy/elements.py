@@ -23,7 +23,7 @@ class Elements:
             Span.set_extension ("element_num", default=None)  # the number an element has been assigned in the text
             Span.set_extension ("element_numstr", default=None)  # the number an element has been assigned in the text
 
-    def __call__(self, doc):
+    def __call__(self, doc, overwrite = False):
         """Apply the pipeline component to a `Doc` object.
         doc (Doc): The `Doc` returned by the previous pipeline component.
         RETURNS (Doc): The modified `Doc` object.
@@ -35,14 +35,18 @@ class Elements:
 
         # Add SpanGroup for ...
 
-        ## Citations
-        doc.spans['citations'] = citations(doc._.parts['citations'])
+        if doc.spans.get('citations') is None or overwrite: # in case a pre-coded (e.g. modified) doc is passed
+            ## Citations
+            doc.spans['citations'] = citations(doc._.parts['citations'])
 
-        ## Recitals
-        doc.spans['recitals'] = recitals(doc._.parts['recitals'])
 
-        ## Articles
-        doc.spans['articles'] = articles(doc._.parts['enacting'])
+        if doc.spans.get('recitals') is None or overwrite:
+            ## Recitals
+            doc.spans['recitals'] = recitals(doc._.parts['recitals'])
+
+        if doc.spans.get('articles') is None or overwrite:
+            ## Articles
+            doc.spans['articles'] = articles(doc._.parts['enacting'])
 
         doc._.article_elements = []
 

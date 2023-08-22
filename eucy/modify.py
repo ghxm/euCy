@@ -1,6 +1,46 @@
 from spacy.tokens import Span, Doc, SpanGroup
 import spacy
-from eucy import utils
+from eucy.utils import set_extensions
+import warnings
+import re
+
+
+
+def add_element(doc, new_text, element_type = None, position = 'end', add_ws = True):
+
+    """Adds new text to a doc/span object and returns the object with the new text in the ._.add_text attribute
+
+    Parameters
+    ----------
+    doc (Doc or Span):
+        The doc object to be added to
+    new_text (str):
+        The new text to add
+    element_type (str):
+        The type of the new text. Must be one of 'citation', 'recital', 'article'. Other types are not supported yet. Default is None.
+    position (str):
+        The position to add the new text. Must be one of 'end', 'start' or an integer specifying the position in the  Default is 'end'.
+    add_ws (bool):
+        Whether to add whitespace around the new text. Default is True.
+
+
+    Returns
+    -------
+    doc (Doc or Span):
+        The doc or span object with the added elements in the respective span group
+
+    """
+
+    # check if doc is a doc or span object
+    assert isinstance(doc, (Doc)), "doc must be a Doc object"
+
+    # make sure the doc has the extensions
+    set_extensions(doc)
+
+    doc._.add_element(new_text, element_type = element_type, position = position, add_ws = add_ws)
+
+    return doc
+
 
 
 
@@ -26,13 +66,11 @@ def replace_text(doc, new_text, keep_ws = True, deletion_threshold = None):
     """
 
     # check if doc is a doc or span object
-    assert isinstance(doc, (Span)), "doc must be a Doc or Span object"
+    assert isinstance(doc, (Span, Doc)), "doc must be a Doc or Span object"
 
-    # check if new text is a string
-    assert isinstance(new_text, str), "New text must be a string"
 
     # make sure the doc has the extensions
-    utils.set_extensions(doc)
+    set_extensions(doc)
 
     doc._.replace_text(new_text, keep_ws = keep_ws, deletion_threshold = deletion_threshold)
 
@@ -40,7 +78,7 @@ def replace_text(doc, new_text, keep_ws = True, deletion_threshold = None):
 
 
 
-def delete_text(doc):
+def delete_text(doc, warn_empty_group = True):
     """Marks a doc/span object as deleted
 
     Parameters
@@ -58,19 +96,17 @@ def delete_text(doc):
     # check if doc is a doc or span object
     assert isinstance(doc, (Doc, Span)), "doc must be a Doc or Span object"
 
-    # check if deleted attribute exists
-    if not doc.has_extension('deleted'):
-        if isinstance(doc, Doc):
-            Doc.set_extension('deleted', default=False, force=False)
-        elif isinstance(doc, Span):
-            Span.set_extension('deleted', default=False, force=False)
+    # make sure the doc has the extensions
+    set_extensions(doc)
 
-    doc._.deleted = True
+    doc._.delete_text(warn_empty_group = warn_empty_group)
 
     return doc
 
 
-def modify_doc(doc, nlp = None, add_spans = True, return_doc = True, delete_spans = True):
+
+
+def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc = True, delete_spans = True):
     """Modify the original text in the doc to contain the new replacement text (`._.replacement_text`) where applicable.
 
     Parameters
@@ -110,6 +146,8 @@ def modify_doc(doc, nlp = None, add_spans = True, return_doc = True, delete_span
     Span.set_extension("new_start_char", default = None, force=True)
     Span.set_extension("new_end_char", default = None, force=True)
     Span.set_extension("replacement_span", method = new_doc_span, force=True)
+    Span.set_extension("added", method = new_doc_span, force=True)
+
 
     # get all non-overlapping spangroups
     non_overlap_span_groups = ['citations', 'recitals', 'articles']
@@ -121,24 +159,56 @@ def modify_doc(doc, nlp = None, add_spans = True, return_doc = True, delete_span
 
     old_text_char_i = 0
 
+    # sort old_spans keys by start char of first span
+    old_spans = {ke: va for ke, va in sorted(old_spans.items(), key=lambda item: min([s.start_char for s in item[1] if not s._.new_element] + [len(doc.text)]))} # sort by start char of first span if not a new element (add len of doc so that there's no exception in case of empty group)
+
 
     # create new text
     for k, spangroup in old_spans.items():
 
         for span_i, span in enumerate(spangroup):
 
-            # if the element got deleted, pop it from the spangroup
+
+            # Deletion
             if (span.has_extension('deleted') and span._.deleted) or (span.has_extension('deleted') and span._.replacement_text is not None and len(span._.replacement_text.strip()) < 5):
 
                 # if we're deleting the first span, we need to add the text before it
                 if old_text_char_i == 0 and span.start_char > 0:
                     new_text += old_text[old_text_char_i:span.start_char]
 
+                # check for replacement text (keep_ws = True in delete())
+                if span.has_extension('replacement_text') and span._.replacement_text is not None:
+                    new_text += span._.replacement_text
+
+                # mark span as added
+                span._.added = True
+
                 # move old text char index
                 old_text_char_i = span.end_char
 
                 if not span._.deleted:
                     span._.deleted = True
+                continue
+
+            # Addition
+            elif span.has_extension('new_element') and span._.new_element:
+
+                # add a new element
+
+                # add any text before the new element
+                new_text += old_text[old_text_char_i:span._.char_pos]
+
+                # move old text char index
+                old_text_char_i = span._.char_pos
+
+                span._.new_start_char = len(new_text)
+
+                # check for replacement text (keep_ws = True in delete())
+                if span.has_extension('replacement_text') and span._.replacement_text is not None:
+                    new_text += span._.replacement_text
+
+                span._.new_end_char = len(new_text)
+
                 continue
 
             # get replacement text
@@ -148,10 +218,11 @@ def modify_doc(doc, nlp = None, add_spans = True, return_doc = True, delete_span
 
             # set new text char index
             span._.new_start_char = len(new_text)
-            span._.new_end_char = span._.new_start_char + len(replacement_text)
 
             # add replacement text to new text
             new_text += replacement_text
+
+            span._.new_end_char = len(new_text)
 
             # update old text char index
             old_text_char_i = span.end_char
@@ -180,6 +251,10 @@ def modify_doc(doc, nlp = None, add_spans = True, return_doc = True, delete_span
         for s_i, old_new_span in enumerate(sg):
             if old_new_span._.deleted:
                 continue
+
+            if old_new_span._.added:
+                old_new_span._.new_element = False
+
             if old_new_span.has_extension('new_start_char'):
                 new_doc.spans[sk].append(old_new_span._.replacement_span(new_doc))
 
@@ -211,23 +286,31 @@ def modify_doc(doc, nlp = None, add_spans = True, return_doc = True, delete_span
         elif part_name == 'enacting_w_toc':
             element_name = 'articles'
 
-        # get part start and end
+        # get part start and end from old doc
         part_start_char = doc._.parts[part_name].start_char
         part_end_char = doc._.parts[part_name].end_char
 
         # @TODO handle cases where all elements are deleted
 
-        # get first element start and last element end
-        first_element_start_char = doc.spans[element_name][0].start_char
-        last_element_end_char = doc.spans[element_name][-1].end_char
+        # get first element start and last element end of the new doc
+        first_element_start_char = new_doc.spans[element_name][0].start_char
+        last_element_end_char = new_doc.spans[element_name][-1].end_char
 
-        # get distances
+        # get distances between part start/end and first/last element
         first_element_dist = first_element_start_char - part_start_char
         last_element_dist = part_end_char - last_element_end_char
 
         # get new part start and end
-        new_part_start_char = new_doc.spans[element_name][0].start_char - first_element_dist
-        new_part_end_char = new_doc.spans[element_name][-1].end_char + last_element_dist
+        try:
+            new_part_start_char = new_doc.spans[element_name][0].start_char - first_element_dist
+            new_part_end_char = new_doc.spans[element_name][-1].end_char + last_element_dist
+        except IndexError:
+            new_part_start_char = None
+            new_part_end_char = None
+
+        if new_part_start_char is None or new_part_end_char is None:
+            new_parts[part_name] = None
+            continue
 
         # get new part
         new_part = new_doc.char_span(new_part_start_char, new_part_end_char, alignment_mode='expand')
@@ -258,6 +341,13 @@ def modify_doc(doc, nlp = None, add_spans = True, return_doc = True, delete_span
 
     # @TODO possible to recover article_elements? -> otherwise elements might no be detected by e.g. elemount count as in current setup -> adjust eucywrapper to work with preconfiugred spans
     # @TODO re-run eu-wrapper to get complexity and other metadata
+    if eu_wrapper is None:
+        from eucy.eucy import EuWrapper
+
+        nlp = spacy.load('en_core_web_sm')
+        eu_wrapper = EuWrapper(nlp)
+
+    new_doc = eu_wrapper(new_doc)
 
     return new_doc
 

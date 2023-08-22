@@ -8,6 +8,8 @@ import errno
 import os
 import signal
 from bs4 import BeautifulSoup
+import warnings
+import random
 
 
 def flatten_gen(l):
@@ -19,6 +21,8 @@ def flatten_gen(l):
 
 def flatten(l):
     return list(flatten_gen(l))
+
+
 
 
 def _replace_text(doc, new_text, keep_ws = True, deletion_threshold = None):
@@ -52,12 +56,163 @@ def _replace_text(doc, new_text, keep_ws = True, deletion_threshold = None):
     # set replacement text
     doc._.replacement_text = new_text
 
+def _delete_text(doc, warn_empty_group =True, keep_ws = True):
+
+    """Setter for the deleted extension. Should not be used directly.
+
+    Parameters
+    ----------
+    doc (Doc or Span):
+        The doc or span object to be marked as deleted
+    warn_empty_group (bool):
+        If True, print a warning if the span group is empty after deletion
+
+
+    """
+
+    assert isinstance(doc, (Doc, Span)), "doc must be a Doc or Span object. Are you trying to use the _set_deleted() function directly?"
+
+    if not doc.has_extension('deleted'):
+        doc.set_extension('deleted', default = False)
+    if not doc.has_extension('replacement_text'):
+        doc.set_extension('replacement_text', default = None)
+
+
+    doc._.deleted = True
+
+    if keep_ws:
+        # get ws at beginning and end of original text
+        ws_start = re.search(r'^\s*', doc.text).group(0)
+        ws_end = re.search(r'\s*$', doc.text_with_ws).group(0)
+
+        # set replacement text
+        doc._.replacement_text = ws_start + ws_end
+    else:
+        doc._.replacement_text = None
+
+    if isinstance(doc, Span):
+        if warn_empty_group:
+
+            # search for the span in the span groups
+            for spangroup in doc.doc.spans:
+                spangroup = doc.doc.spans[spangroup]
+                if doc in list(spangroup):
+                    break
+
+            # if the span group is empty, print a warning
+            if len([s for s in spangroup if s.has_extension('deleted') and not s._.deleted]) == 0:
+
+                warnings.warn(f'Span group "{ spangroup.name }" will be empty after deletion of element')
+
+def _add_element(doc, new_text, element_type = None, position = 'end', add_ws = True):
+    """Setter for the add_text extension. Should not be used directly."""
+
+    assert element_type in ['citation', 'recital', 'article'], "element_type must be one of 'citations', 'recitals', 'articles'"
+
+    assert position in ['end', 'start'] or isinstance(position, int), "position must be one of 'end', 'start' or an integer"
+
+    assert position in range(len(doc.spans[element_type+'s'])+1), "position must not be larger than the number of existing elements"
+
+    # check if doc is a doc or span object
+    assert isinstance(doc, (Doc)), "doc must be a Doc object"
+
+    # check if new text is a string
+    assert isinstance(new_text, (str, Span)), "New text must be a string"
+
+    # make sure the add_text extension exists
+
+    if isinstance(new_text, Span):
+        if not new_text.has_extension('new_element'):
+            Span.set_extension('new_element', default = False)
+        if not new_text.has_extension('char_pos'):
+            Span.set_extension('char_pos', default = None)
+
+
+    if isinstance(new_text, str):
+
+        new_span = None
+
+        # create a random span that is not equal to any existing span
+        while new_span is None or new_span._.replacement_text is not None:
+
+            # choose a random start and end char pos
+            start = random.randint(0, len(doc.text))
+            end = random.randint(start, len(doc.text))
+
+            # check if any spans exist with same start and end
+            new_span = doc.char_span(start, end, alignment_mode='expand')
+
+        new_span._.replacement_text = new_text
+    else:
+        new_span = new_text
+        if new_span._.replacement_text is None:
+            new_span._.replacement_text = new_span.text
+        new_text = new_span.text_with_ws
+
+    if add_ws:
+        new_span._.replacement_text = '\n\n' + new_text + '\n\n'
+
+    # set new element flag
+    new_span._.new_element = True
+
+    # add new span to doc
+    if position == 'end':
+        position = len(doc.spans[element_type+'s'])
+    elif position == 'start':
+        position = 0
+
+    spangroup_name = element_type+'s'
+
+
+    sg_without_new_elements = lambda x: [s for s in doc.spans[x] if not s._.new_element]
+
+
+    # add the char pos (pos where the element is inserted, needed for text recreation in modify.modify_text)
+
+    if len(doc.spans[spangroup_name]) == 0:
+
+        # if the span group is empty (no elments of the added type)
+
+        warnings.warn(f'Span group "{ element_type }" is empty. The new element will be inserted at an approximate position but is likely to be incorrect.')
+
+        if element_type == 'recital':
+            ## use citation end char pos
+            try:
+                new_span._.char_pos = sg_without_new_elements('citations')[-1].end_char
+            except:
+                new_span._.char_pos = sg_without_new_elements('articles')[0].start_char
+
+
+        elif element_type == 'citation':
+
+            ## use recital end char pos
+            try:
+                new_span._.char_pos = sg_without_new_elements('rectials')[0].start_char
+            except:
+                new_span._.char_pos = sg_without_new_elements('articles')[0].start_char
+
+        else:
+
+            raise ValueError('Cannot insert article in document without articles')
+
+    else:
+        if position in range(len(sg_without_new_elements(spangroup_name))):
+            ## insert at position
+            new_span._.char_pos = sg_without_new_elements(spangroup_name)[position].start_char
+
+        else:
+            ## insert at end
+            new_span._.char_pos = sg_without_new_elements(spangroup_name)[-1].end_char
+
+
+    # insert into span group at position in a bit of a hacky way
+    doc.spans[spangroup_name] = [e for i, e in enumerate(doc.spans[spangroup_name]) if i < position] + [new_span] + [e for i, e in enumerate(doc.spans[spangroup_name]) if i >= position]
+
+    #return doc
 
 
 
 _extensions = {
-
-    # @TODO add delete() extension method
 
     "Doc": [
         {
@@ -89,13 +244,29 @@ _extensions = {
             'default': False
         },
         {
+            'name': 'delete_text',
+            'method': _delete_text
+        },
+        {
+            'name': 'delete', # alias for delete_text
+            'method': _delete_text
+        },
+        {
             'name': 'replacement_text',
             'default': None
         },
         {
             'name': 'replace_text',
             'method': _replace_text,
-        }
+        },
+        {
+            'name': 'replace', # alias for replace_text
+            'method': _replace_text,
+        },
+        {
+            'name': 'add_element',
+            'method': _add_element
+        },
     ],
     "Span": [
         {
@@ -103,12 +274,32 @@ _extensions = {
             'default': False
         },
         {
+            'name': 'delete_text',
+            'method': _delete_text
+        },
+        {
+            'name': 'delete', # alias for delete_text
+            'method': _delete_text
+        },
+        {
             'name': 'replacement_text',
             'default': None
         },
         {
             'name': 'replace_text',
             'method': _replace_text,
+        },
+        {
+            'name': 'replace', # alias for replace_text
+            'method': _replace_text,
+        },
+        {
+            'name': 'new_element',
+            'default': False
+        },
+        {
+            'name': 'char_pos',
+            'default': None
         }
     ]
 }
