@@ -168,7 +168,6 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
 
         for span_i, span in enumerate(spangroup):
 
-
             # Deletion
             if (span.has_extension('deleted') and span._.deleted) or (span.has_extension('deleted') and span._.replacement_text is not None and len(span._.replacement_text.strip()) < 5):
 
@@ -286,11 +285,15 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
         elif part_name == 'enacting_w_toc':
             element_name = 'articles'
 
+        # check for case where all elements are deleted/there are no elements
+        if len(new_doc.spans[element_name]) == 0:
+            new_parts[part_name] = None
+            continue
+
         # get part start and end from old doc
         part_start_char = doc._.parts[part_name].start_char
         part_end_char = doc._.parts[part_name].end_char
 
-        # @TODO handle cases where all elements are deleted
 
         # get first element start and last element end of the new doc
         first_element_start_char = new_doc.spans[element_name][0].start_char

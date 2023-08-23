@@ -10,77 +10,203 @@ def _test_modify_doc(eudoc, eu_wrapper, nlp):
 
     assert type(eudoc_mod) == type(eudoc), 'modify_doc() did not return the same type of object as input.'
 
-    # run through eu_wrapper
-    eudoc_mod = eu_wrapper(eudoc_mod)
-
     assert type(eudoc_mod) == type(eudoc), 'modify_doc() did not return the same type of object as input after running through eu_wrapper.'
 
     # try with nlp
-    eudoc_mod = modify.modify_doc(eudoc, nlp=nlp)
+    eudoc_mod = modify.modify_doc(eudoc, nlp=nlp, eu_wrapper=eu_wrapper)
 
     assert type(eudoc_mod) == type(eudoc), 'modify_doc() did not return the same type of object as input when nlp was passed.'
 
-    # run through eu_wrapper
-    eudoc_mod = eu_wrapper(eudoc_mod)
 
 
-def _test_modify_doc_replacement(eudoc, eu_wrapper):
+def _test_modify_doc_replacement(eudoc):
     """Test modify.modify_doc() for replacement of a random citation, recital, and article."""
 
-    # replace a random citation, recital, and article
-    if len(eudoc.spans['citations']) > 0:
-        random_citation_i = random.choice(range(len(eudoc.spans['citations'])))
-        eudoc.spans['citations'][random_citation_i] = modify.replace_text(eudoc.spans['citations'][random_citation_i], 'This is a test.')
+    threshold = 0
 
-    if len(eudoc.spans['recitals']) > 0:
-        random_recital_i = random.choice(range(len(eudoc.spans['recitals'])))
-        eudoc.spans['recitals'][random_recital_i] = modify.replace_text(eudoc.spans['recitals'][random_recital_i], 'This is a test.')
+    to_test = ['citations', 'recitals', 'articles']
+    random_span_is = {}
 
-    if len(eudoc.spans['articles']) > 0:
-        random_article_i = random.choice(range(len(eudoc.spans['articles'])))
-        eudoc.spans['articles'][random_article_i] = modify.replace_text(eudoc.spans['articles'][random_article_i], 'This is a test.')
+    for span_type in to_test:
+        if len(eudoc.spans[span_type]) > threshold:
+            random_span_is[span_type] = random.choice(range(len(eudoc.spans[span_type])))
+            eudoc.spans[span_type][random_span_is[span_type]] = modify.replace_text(eudoc.spans[span_type][random_span_is[span_type]], 'This is a test.')
 
     eudoc_mod = modify.modify_doc(eudoc)
 
-    assert eudoc_mod.spans['citations'][random_citation_i].text.strip() == 'This is a test.', 'Citation replacement failed.'
-    assert eudoc_mod.spans['recitals'][random_recital_i].text.strip() == 'This is a test.', 'Recital replacement failed.'
-    assert eudoc_mod.spans['articles'][random_article_i].text.strip() == 'This is a test.', 'Article replacement failed.'
+    for span_type in to_test:
+        if len(eudoc.spans[span_type]) > threshold:
 
-    # run through eu_wrapper
-    eudoc_mod = eu_wrapper(eudoc_mod)
+            assert eudoc_mod.spans[span_type][random_span_is[span_type]].text == 'This is a test.', 'modify_doc() did not replace the text of a random {}.'.format(span_type.title())
 
 
-def test_modify_doc_deletion(eudoc, eu_wrapper):
+def _test_modify_doc_deletion(eudoc, eu_wrapper):
     """Test modify.modify_doc() for deletion of a random citation, recital, and article."""
 
-    # delete a random citation, recital, and article
-    if len(eudoc.spans['citations']) > 0:
-        random_citation_i = random.choice(range(len(eudoc.spans['citations'])))
-        eudoc.spans['citations'][random_citation_i] = modify.delete_text(eudoc.spans['citations'][random_citation_i])
+    threshold = 0
 
-    if len(eudoc.spans['recitals']) > 0:
-        random_recital_i = random.choice(range(len(eudoc.spans['recitals'])))
-        eudoc.spans['recitals'][random_recital_i] = modify.delete_text(eudoc.spans['recitals'][random_recital_i])
+    to_test = ['citations', 'recitals', 'articles']
 
-    if len(eudoc.spans['articles']) > 0:
-        random_article_i = random.choice(range(len(eudoc.spans['articles'])))
-        eudoc.spans['articles'][random_article_i] = modify.delete_text(eudoc.spans['articles'][random_article_i])
+    for span_type in to_test:
+        if len(eudoc.spans[span_type]) > threshold:
+            random_span_i = random.choice(range(len(eudoc.spans[span_type])))
+            eudoc.spans[span_type][random_span_i] = modify.delete_text(eudoc.spans[span_type][random_span_i])
 
     eudoc_mod = modify.modify_doc(eudoc)
 
-    # @TODO delete this once this is implemented in modify_text()
-    # @TODO this breaks some stats, e.g. 51995PC0034(11)
-    eudoc_mod = eu_wrapper(eudoc_mod)
+    for span_type in to_test:
+        if len(eudoc.spans[span_type]) > threshold:
+            assert len(eudoc_mod.spans[span_type]) == len(eudoc.spans[span_type]) - 1, 'Deletion of {} failed.'.format(span_type.title())
 
-    assert len(eudoc_mod.spans['citations']) == len(eudoc.spans['citations']) - 1, 'Citation deletion failed.'
-    #assert eudoc_mod._.complexity['citations'] == eudoc._.complexity['citations'] -1, 'Citation deletion failed.'
+def _test_modify_doc_addition(eudoc):
 
-    assert len(eudoc_mod.spans['recitals']) == len(eudoc.spans['recitals']) - 1, 'Recital deletion failed.'
-    #assert eudoc_mod._.complexity['recitals'] == eudoc._.complexity['recitals'] -1, 'Recital deletion failed.'
+    to_test = ['citations', 'recitals', 'articles']
+    random_span_is = {}
 
-    assert len(eudoc_mod.spans['articles']) == len(eudoc.spans['articles']) - 1, 'Article deletion failed.'
-    #assert eudoc_mod._.complexity['articles'] == eudoc._.complexity['articles'] -1, 'Article deletion failed.'
+    for span_type in to_test:
 
-    # run through eu_wrapper
-    eudoc_mod = eu_wrapper(eudoc_mod)
+        random_span_is[span_type] = [random.choice(range(len(eudoc.spans[span_type]))) if len(eudoc.spans[span_type]) > 0 else 0]
+
+        eudoc._.add_element('This is a test.', position=random_span_is[span_type][0], element_type=span_type[:-1])
+
+
+        # randomly add 1 more
+        if random.random() > 0.5:
+
+            eudoc._.add_element('This is a test.', position='end', element_type=span_type[:-1])
+
+            random_span_is[span_type].append(len(eudoc.spans[span_type])-1)
+
+
+    eudoc_mod = modify.modify_doc(eudoc)
+
+    for span_type in to_test:
+
+        for r_i in random_span_is[span_type]:
+            assert eudoc_mod._.complexity[span_type] == eudoc._.complexity[span_type] + len(random_span_is[span_type]), 'modify_doc() did not add the correct number of {} to the count.'.format(span_type.title())
+            assert eudoc_mod.spans[span_type][r_i].text.strip() == 'This is a test.', 'modify_doc() did not add the text of a new {}.'.format(span_type.title())
+
+
+
+
+def test_modify_doc_mix(eudoc):
+
+    modification_operations = ['addition', 'deletion', 'replacement']
+    parts = ['citations', 'recitals', 'articles']
+
+    modifications = {op: {part: [] for part in parts} for op in modification_operations}
+
+    for modop in modification_operations:
+
+        # randomly decide whether to do this operation
+        if random.random() > 0.2:
+            for part in parts:
+                # randomly decide whether to modify this part
+                if random.random() > 0.2:
+                    if modop == 'addition':
+                        modifications[modop][part] = [random.choice(range(len(eudoc.spans[part]))) if len(eudoc.spans[part]) > 0 else 0]
+                        eudoc._.add_element('This is a test.', position=modifications[modop][part][0], element_type=part[:-1])
+                        # randomly add a couple more
+
+                        while random.random() > 0.4:
+                            eudoc._.add_element('This is a test.', position='end', element_type=part[:-1])
+                            modifications[modop][part].append(len(eudoc.spans[part])-1)
+
+
+                    elif modop == 'deletion':
+
+                        # make sure random deletion is not the in the added elements
+                        t_r_i = 0
+                        r = None
+                        while True and len(eudoc.spans[part]) > 0:
+                            r = random.choice(range(len(eudoc.spans[part])))
+                            if r not in modifications['addition'][part] and r not in modifications['deletion'][part]:
+                                modifications[modop][part].append(r)
+                                break
+                            else:
+                                r = None
+                            t_r_i += 1
+                            if t_r_i > 10:
+                                break
+
+                        if r is not None:
+                            eudoc.spans[part][r] = modify.delete_text(eudoc.spans[part][r])
+
+
+                        # randomly delete 1 more
+                        while random.random() > 0.4 and len(eudoc.spans[part]) > len(modifications['addition'][part] + modifications['deletion'][part]):
+                            # make sure random deletion is not the in the added elements
+                            t_r_i = 0
+                            r = None
+                            while True:
+                                r = random.choice(range(len(eudoc.spans[part])))
+                                if r not in modifications['addition'][part] and r not in modifications['deletion'][part]:
+                                    modifications[modop][part].append(r)
+                                    break
+                                else:
+                                    r = None
+                                t_r_i += 1
+                                if t_r_i > 10:
+                                    break
+
+                            if r is not None:
+                                eudoc.spans[part][r] = modify.delete_text(eudoc.spans[part][r])
+
+                    elif modop == 'replacement':
+                        t_r_i = 0
+                        r = None
+                        while True and len(eudoc.spans[part]) > 0:
+                            r = random.choice(range(len(eudoc.spans[part])))
+                            if r not in modifications['addition'][part] and r not in modifications['deletion'][part] and r not in modifications['replacement'][part]:
+                                modifications[modop][part].append(r)
+                                break
+                            else:
+                                r = None
+                            t_r_i += 1
+                            if t_r_i > 10:
+                                break
+
+                        if r is not None:
+                            eudoc.spans[part][r] = modify.replace_text(eudoc.spans[part][r], 'This is a replaced test.')
+
+                        # randomly replace 1 more
+                        while random.random() > 0.4 and len(eudoc.spans[part]) > len(modifications['addition'][part] + modifications['deletion'][part] + modifications['replacement'][part]):
+
+                            t_r_i = 0
+                            while True:
+                                r = random.choice(range(len(eudoc.spans[part])))
+                                if r not in modifications['addition'][part] and r not in modifications['deletion'][part] and r not in modifications['replacement'][part]:
+                                    modifications[modop][part].append(r)
+                                    break
+                                else:
+                                    r = None
+                                t_r_i += 1
+                                if t_r_i > 10:
+                                    break
+
+                            if r is not None:
+                                eudoc.spans[part][r] = modify.replace_text(eudoc.spans[part][r], 'This is a replaced test.')
+
+    eudoc_mod = modify.modify_doc(eudoc)
+
+    # print the modifications
+    print(modifications)
+
+    # check
+    for part in parts:
+        # check that each part has the right number of elements
+        assert eudoc_mod._.complexity[part] == eudoc._.complexity[part] + len(modifications['addition'][part]) - len(modifications['deletion'][part]), 'modify_doc() did not end up the correct number of {} after modification.'.format(part.title())
+
+        # check that part has the right number of 'This is a test.' (additions) elements
+        assert len([s for s in eudoc_mod.spans[part] if s.text.strip() == 'This is a test.']) == len(modifications['addition'][part]), 'modify_doc() did not add the correct number of {} to the count.'.format(part.title())
+
+        # check that part has the right number of 'This is a replaced test.' (replacements) elements
+        assert len([s for s in eudoc_mod.spans[part] if s.text.strip() == 'This is a replaced test.']) == len(modifications['replacement'][part]), 'modify_doc() did not replace the correct number of {} to the count.'.format(part.title())
+
+
+
+
+
+
+
 

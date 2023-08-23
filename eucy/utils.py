@@ -37,6 +37,10 @@ def _replace_text(doc, new_text, keep_ws = True, deletion_threshold = None):
     if not keep_ws:
         return new_text
 
+
+    if doc.has_extension('deleted') and doc._.deleted:
+        raise ValueError("Cannot replace text in a deleted span.")
+
     # make sure the replacement_text extension exists
     if not doc.has_extension('replacement_text'):
         doc.set_extension('replacement_text', default = None)
@@ -109,9 +113,16 @@ def _add_element(doc, new_text, element_type = None, position = 'end', add_ws = 
 
     assert element_type in ['citation', 'recital', 'article'], "element_type must be one of 'citations', 'recitals', 'articles'"
 
-    assert position in ['end', 'start'] or isinstance(position, int), "position must be one of 'end', 'start' or an integer"
+    assert position in ['end', 'start'] or (isinstance(position, int) and (position in range(len(doc.spans[element_type+'s']))) or position == 0), "position must be one of 'end', 'start' or an integer inside the range of the span group"
 
-    assert position in range(len(doc.spans[element_type+'s'])+1), "position must not be larger than the number of existing elements"
+    # add new span to doc
+    if position == 'end':
+        position = len(doc.spans[element_type + 's'])
+    elif position == 'start':
+        position = 0
+
+    if position > len(doc.spans[element_type + 's']):
+        position = len(doc.spans[element_type + 's'])
 
     # check if doc is a doc or span object
     assert isinstance(doc, (Doc)), "doc must be a Doc object"
@@ -155,11 +166,7 @@ def _add_element(doc, new_text, element_type = None, position = 'end', add_ws = 
     # set new element flag
     new_span._.new_element = True
 
-    # add new span to doc
-    if position == 'end':
-        position = len(doc.spans[element_type+'s'])
-    elif position == 'start':
-        position = 0
+
 
     spangroup_name = element_type+'s'
 
@@ -169,7 +176,7 @@ def _add_element(doc, new_text, element_type = None, position = 'end', add_ws = 
 
     # add the char pos (pos where the element is inserted, needed for text recreation in modify.modify_text)
 
-    if len(doc.spans[spangroup_name]) == 0:
+    if len(sg_without_new_elements(spangroup_name)) == 0:
 
         # if the span group is empty (no elments of the added type)
 
