@@ -59,6 +59,7 @@ def _test_modify_doc_deletion(eudoc, eu_wrapper):
             assert len(eudoc_mod.spans[span_type]) == len(eudoc.spans[span_type]) - 1, 'Deletion of {} failed.'.format(span_type.title())
 
 def _test_modify_doc_addition(eudoc):
+    """Test modify.modify_doc() for addition of a random citation, recital, and article."""
 
     to_test = ['citations', 'recitals', 'articles']
     random_span_is = {}
@@ -90,6 +91,7 @@ def _test_modify_doc_addition(eudoc):
 
 
 def test_modify_doc_mix(eudoc):
+    """Test modify.modify_doc() for a mix of modifications."""
 
     modification_operations = ['addition', 'deletion', 'replacement']
     parts = ['citations', 'recitals', 'articles']
