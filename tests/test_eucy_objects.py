@@ -4,7 +4,8 @@
 
 import pytest
 from .conftest import result_by_id
-
+import krippendorff
+import numpy as np
 
 
 # TESTS
@@ -19,22 +20,8 @@ def _test_object_creation(eu_wrapper, eudoc, text):
     assert eudoc._.complexity == eudoc_str._.complexity
 
 
-# TESTS: Aggregated documents
-
-def _test_aggregate(eudocs, results):
-
-    """Test Inter-coder reliability"""
-
-
-    print('')
-
-    # @TODO ICR overall high enough?
-
-    pass
-
 # TESTS: Individual documents
 
-# @TODO set approx limits from hand coding differences and investigate when the code might have been changed :o
 
 def test_citations(eudoc, results, request):
     """Test number of citations detection"""
@@ -82,6 +69,59 @@ def test_references_total(eudoc, results, request):
     celex_id = request_celex_id(request)
 
     assert eudoc._.complexity['references']['internal'] + eudoc._.complexity['references']['external'] == pytest.approx(result_by_id(celex_id, results)['ref_enacting'], abs=3)
+
+
+
+# Inter-coder reliability tests
+
+
+# ICR: Recitals
+@pytest.mark.parametrize("scale", ['interval', 'nominal', 'ordinal'])
+@pytest.mark.parametrize("var", ['citations', 'recitals', 'articles', 'ref_int_enacting', 'ref_ext_enacting', 'ref_enacting'])
+def test_icr(eudocs, results, var, scale, euplex_alphas):
+
+    """Test Inter-coder reliability for recitals (krippendorff's alpha) between euCy and hand-annotated results"""
+
+    # @TODO possibly only consider documents that are also in the original dataset vs hand-coded data ICR calculation
+
+
+    if var in ['citations', 'recitals', 'articles']:
+        results_array = np.array([
+            results['doc_proposal_' + var],
+            [eudoc._.complexity[var] for eudoc in eudocs]
+            ]
+        )
+    elif var == 'ref_int_enacting':
+        results_array = np.array([
+            results['doc_proposal_' + var],
+            [eudoc._.complexity['references']['internal'] for eudoc in eudocs]
+            ]
+        )
+    elif var == 'ref_ext_enacting':
+        results_array = np.array([
+            results['doc_proposal_' + var],
+            [eudoc._.complexity['references']['external'] for eudoc in eudocs]
+            ]
+        )
+    elif var == 'ref_enacting':
+        results_array = np.array([
+            results['doc_proposal_' + var],
+            [eudoc._.complexity['references']['internal'] + eudoc._.complexity['references']['external'] for eudoc in eudocs]
+            ]
+        )
+
+
+    alphas = {}
+
+    alpha = krippendorff.alpha(
+            reliability_data=results_array,
+            level_of_measurement=scale
+        )
+
+
+    # compare alphas
+    assert alpha >= euplex_alphas[var][scale]
+
 
 
 

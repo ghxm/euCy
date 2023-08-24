@@ -3,7 +3,7 @@ from eucy import modify
 import random
 
 
-def _test_modify_doc(eudoc, eu_wrapper, nlp):
+def test_modify_doc(eudoc, eu_wrapper, nlp):
     """Test general in and output of modify.modify_doc()."""
 
     eudoc_mod = modify.modify_doc(eudoc)
@@ -19,7 +19,7 @@ def _test_modify_doc(eudoc, eu_wrapper, nlp):
 
 
 
-def _test_modify_doc_replacement(eudoc):
+def test_modify_doc_replacement(eudoc):
     """Test modify.modify_doc() for replacement of a random citation, recital, and article."""
 
     threshold = 0
@@ -37,10 +37,10 @@ def _test_modify_doc_replacement(eudoc):
     for span_type in to_test:
         if len(eudoc.spans[span_type]) > threshold:
 
-            assert eudoc_mod.spans[span_type][random_span_is[span_type]].text == 'This is a test.', 'modify_doc() did not replace the text of a random {}.'.format(span_type.title())
+            assert eudoc_mod.spans[span_type][random_span_is[span_type]].text.strip() == 'This is a test.', 'modify_doc() did not replace the text of a random {}.'.format(span_type.title())
 
 
-def _test_modify_doc_deletion(eudoc, eu_wrapper):
+def test_modify_doc_deletion(eudoc, eu_wrapper):
     """Test modify.modify_doc() for deletion of a random citation, recital, and article."""
 
     threshold = 0
@@ -58,7 +58,7 @@ def _test_modify_doc_deletion(eudoc, eu_wrapper):
         if len(eudoc.spans[span_type]) > threshold:
             assert len(eudoc_mod.spans[span_type]) == len(eudoc.spans[span_type]) - 1, 'Deletion of {} failed.'.format(span_type.title())
 
-def _test_modify_doc_addition(eudoc):
+def test_modify_doc_addition(eudoc):
     """Test modify.modify_doc() for addition of a random citation, recital, and article."""
 
     to_test = ['citations', 'recitals', 'articles']

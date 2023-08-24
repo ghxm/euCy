@@ -110,7 +110,7 @@ def eudoc(nlp, eu_wrapper, text):
     return eudoc
 
 @pytest.fixture
-def eudocs(nlp, eu_wrapper, text):
+def eudocs(nlp, eu_wrapper):
     """spaCy docs fixture"""
 
     htmls = []
@@ -130,3 +130,55 @@ def eudocs(nlp, eu_wrapper, text):
 
     return eudocs
 
+
+
+@pytest.fixture
+def euplex_dataset_results(results):
+    """Read in euplex dataset"""
+
+    # download euplex dataset and read in
+    euplex = pd.read_csv('data/euplex_dataset_results.csv') # read in subset of jan 2023 version
+
+    return euplex
+
+
+
+@pytest.fixture
+def euplex_alphas():
+    """ ICR results from the euplex dataset paper """
+
+
+    # krippendorrf's alphas from paper annex
+    return {
+        'citations': {
+            'nominal': 0.974,
+            'ordinal': 0.994,
+            'interval': 0.984
+        },
+        'recitals': {
+            'nominal': 0.927,
+            'ordinal': 0.944,
+            'interval': 0.917
+        },
+        'articles': {
+            'nominal': 0.954,
+            'ordinal': 0.995,
+            'interval': 0.999
+        },
+        'ref_int_enacting': {
+            'nominal': 0.373,
+            'ordinal': 0.797,
+            'interval': 0.861
+        },
+        'ref_ext_enacting': {
+            'nominal': 0.450,
+            'ordinal': 0.909,
+            'interval': 0.861
+        },
+        'ref_enacting': {
+            'nominal': 0.388,
+            'ordinal': 0.904,
+            'interval': 0.977
+        }
+
+    }
