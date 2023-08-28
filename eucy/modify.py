@@ -1,13 +1,13 @@
-from spacy.tokens import Span, Doc, SpanGroup
-import spacy
-from eucy.utils import set_extensions
-import warnings
 import re
+import warnings
+
+import spacy
+from spacy.tokens import Doc, Span, SpanGroup
+
+from eucy.utils import set_extensions
 
 
-
-def add_element(doc, new_text, element_type = None, position = 'end', add_ws = True):
-
+def add_element(doc, new_text, element_type=None, position='end', add_ws=True):
     """Adds new text to a doc/span object and returns the object with the new text in the ._.add_text attribute
 
     Parameters
@@ -37,15 +37,15 @@ def add_element(doc, new_text, element_type = None, position = 'end', add_ws = T
     # make sure the doc has the extensions
     set_extensions(doc)
 
-    doc._.add_element(new_text, element_type = element_type, position = position, add_ws = add_ws)
+    doc._.add_element(new_text,
+                      element_type=element_type,
+                      position=position,
+                      add_ws=add_ws)
 
     return doc
 
 
-
-
-def replace_text(doc, new_text, keep_ws = True, deletion_threshold = None):
-
+def replace_text(doc, new_text, keep_ws=True, deletion_threshold=None):
     """Adds replacement text for a span/doc object and returns the object with the new in the ._.replacement_text attribute
 
     Parameters
@@ -68,17 +68,17 @@ def replace_text(doc, new_text, keep_ws = True, deletion_threshold = None):
     # check if doc is a doc or span object
     assert isinstance(doc, (Span, Doc)), "doc must be a Doc or Span object"
 
-
     # make sure the doc has the extensions
     set_extensions(doc)
 
-    doc._.replace_text(new_text, keep_ws = keep_ws, deletion_threshold = deletion_threshold)
+    doc._.replace_text(new_text,
+                       keep_ws=keep_ws,
+                       deletion_threshold=deletion_threshold)
 
     return doc
 
 
-
-def delete_text(doc, warn_empty_group = True):
+def delete_text(doc, warn_empty_group=True):
     """Marks a doc/span object as deleted
 
     Parameters
@@ -99,14 +99,17 @@ def delete_text(doc, warn_empty_group = True):
     # make sure the doc has the extensions
     set_extensions(doc)
 
-    doc._.delete_text(warn_empty_group = warn_empty_group)
+    doc._.delete_text(warn_empty_group=warn_empty_group)
 
     return doc
 
 
-
-
-def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc = True, delete_spans = True):
+def modify_doc(doc,
+               nlp=None,
+               eu_wrapper=None,
+               add_spans=True,
+               return_doc=True,
+               delete_spans=True):
     """Modify the original text in the doc to contain the new replacement text (`._.replacement_text`) where applicable.
 
     Parameters
@@ -132,7 +135,10 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
     old_text = doc.text
 
     def new_doc_span(span, new_doc):
-        new_span = new_doc.char_span(span._.new_start_char, span._.new_end_char, alignment_mode='expand', label=span.label_)
+        new_span = new_doc.char_span(span._.new_start_char,
+                                     span._.new_end_char,
+                                     alignment_mode='expand',
+                                     label=span.label_)
 
         # copy extension attributes
         for attr in dir(span._):
@@ -143,11 +149,10 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
         return new_span
 
     # set Span extensions
-    Span.set_extension("new_start_char", default = None, force=True)
-    Span.set_extension("new_end_char", default = None, force=True)
-    Span.set_extension("replacement_span", method = new_doc_span, force=True)
-    Span.set_extension("added", method = new_doc_span, force=True)
-
+    Span.set_extension("new_start_char", default=None, force=True)
+    Span.set_extension("new_end_char", default=None, force=True)
+    Span.set_extension("replacement_span", method=new_doc_span, force=True)
+    Span.set_extension("added", method=new_doc_span, force=True)
 
     # get all non-overlapping spangroups
     non_overlap_span_groups = ['citations', 'recitals', 'articles']
@@ -160,8 +165,14 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
     old_text_char_i = 0
 
     # sort old_spans keys by start char of first span
-    old_spans = {ke: va for ke, va in sorted(old_spans.items(), key=lambda item: min([s.start_char for s in item[1] if not s._.new_element] + [len(doc.text)]))} # sort by start char of first span if not a new element (add len of doc so that there's no exception in case of empty group)
-
+    old_spans = {
+        ke: va
+        for ke, va in sorted(
+            old_spans.items(),
+            key=lambda item: min(
+                [s.start_char for s in item[1]
+                 if not s._.new_element] + [len(doc.text)]))
+    }  # sort by start char of first span if not a new element (add len of doc so that there's no exception in case of empty group)
 
     # create new text
     for k, spangroup in old_spans.items():
@@ -169,14 +180,19 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
         for span_i, span in enumerate(spangroup):
 
             # Deletion
-            if (span.has_extension('deleted') and span._.deleted) or (span.has_extension('deleted') and span._.replacement_text is not None and len(span._.replacement_text.strip()) < 5):
+            if (span.has_extension('deleted') and span._.deleted) or (
+                    span.has_extension('deleted')
+                    and span._.replacement_text is not None
+                    and len(span._.replacement_text.strip()) < 5):
 
                 # if we're deleting the first span, we need to add the text before it
                 if old_text_char_i == 0 and span.start_char > 0:
                     new_text += old_text[old_text_char_i:span.start_char]
 
                 # check for replacement text (keep_ws = True in delete())
-                if span.has_extension('replacement_text') and span._.replacement_text is not None:
+                if span.has_extension(
+                        'replacement_text'
+                ) and span._.replacement_text is not None:
                     new_text += span._.replacement_text
 
                 # mark span as added
@@ -203,7 +219,9 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
                 span._.new_start_char = len(new_text)
 
                 # check for replacement text (keep_ws = True in delete())
-                if span.has_extension('replacement_text') and span._.replacement_text is not None:
+                if span.has_extension(
+                        'replacement_text'
+                ) and span._.replacement_text is not None:
                     new_text += span._.replacement_text
 
                 span._.new_end_char = len(new_text)
@@ -211,7 +229,9 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
                 continue
 
             # get replacement text
-            replacement_text = span._.replacement_text if span.has_extension('replacement_text') and span._.replacement_text is not None else span.text_with_ws
+            replacement_text = span._.replacement_text if span.has_extension(
+                'replacement_text'
+            ) and span._.replacement_text is not None else span.text_with_ws
 
             new_text += old_text[old_text_char_i:span.start_char]
 
@@ -226,20 +246,17 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
             # update old text char index
             old_text_char_i = span.end_char
 
-
     # add remaining text
     new_text += old_text[old_text_char_i:]
 
     if not return_doc:
         return new_text
 
-
     # create new doc
     new_doc = nlp(new_text)
 
     if not add_spans:
         return new_doc
-
 
     # add new spans to new doc
     for sk, sg in old_spans.items():
@@ -255,14 +272,13 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
                 old_new_span._.new_element = False
 
             if old_new_span.has_extension('new_start_char'):
-                new_doc.spans[sk].append(old_new_span._.replacement_span(new_doc))
-
+                new_doc.spans[sk].append(
+                    old_new_span._.replacement_span(new_doc))
 
     # recover _.parts
 
     if not doc.has_extension('parts'):
-        Doc.set_extension('parts', default = None, force=True)
-
+        Doc.set_extension('parts', default=None, force=True)
 
     part_names = ['citations', 'recitals', 'enacting', 'enacting_w_toc']
 
@@ -294,7 +310,6 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
         part_start_char = doc._.parts[part_name].start_char
         part_end_char = doc._.parts[part_name].end_char
 
-
         # get first element start and last element end of the new doc
         first_element_start_char = new_doc.spans[element_name][0].start_char
         last_element_end_char = new_doc.spans[element_name][-1].end_char
@@ -305,8 +320,10 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
 
         # get new part start and end
         try:
-            new_part_start_char = new_doc.spans[element_name][0].start_char - first_element_dist
-            new_part_end_char = new_doc.spans[element_name][-1].end_char + last_element_dist
+            new_part_start_char = new_doc.spans[element_name][
+                0].start_char - first_element_dist
+            new_part_end_char = new_doc.spans[element_name][
+                -1].end_char + last_element_dist
         except IndexError:
             new_part_start_char = None
             new_part_end_char = None
@@ -316,7 +333,9 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
             continue
 
         # get new part
-        new_part = new_doc.char_span(new_part_start_char, new_part_end_char, alignment_mode='expand')
+        new_part = new_doc.char_span(new_part_start_char,
+                                     new_part_end_char,
+                                     alignment_mode='expand')
 
         # add new part to new doc
         new_parts[part_name] = new_part
@@ -333,10 +352,13 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
 
         ## get new annex start and end
         new_annex_start_char = new_parts['enacting'].end_char + annex_dist
-        new_annex_end_char = new_annex_start_char + len(doc._.parts['annex'].text)
+        new_annex_end_char = new_annex_start_char + len(
+            doc._.parts['annex'].text)
 
         ## get new annex
-        new_annex = new_doc.char_span(new_annex_start_char, new_annex_end_char, alignment_mode='expand')
+        new_annex = new_doc.char_span(new_annex_start_char,
+                                      new_annex_end_char,
+                                      alignment_mode='expand')
         new_parts['annex'] = new_annex
 
     # add new parts to new doc
@@ -353,4 +375,3 @@ def modify_doc(doc, nlp = None, eu_wrapper = None, add_spans = True, return_doc 
     new_doc = eu_wrapper(new_doc)
 
     return new_doc
-

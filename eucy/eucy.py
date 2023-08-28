@@ -1,28 +1,25 @@
 """Main module."""
 
-from spacy.tokens import Doc
-from spacy.language import Language
-from eucy import structure
-from eucy import elements
-from eucy import content
-from eucy import entities
-from eucy.utils import timeout, get_element_by_num, get_element_by_match, set_extensions
-from eucy.entities import references
-from eucy.tokenizer import tokenizer, retokenizer
-from collections import Counter
-from spacy.pipeline.dep_parser import DEFAULT_PARSER_MODEL
-import en_core_web_sm
 import warnings
+from collections import Counter
+
+import en_core_web_sm
+from spacy.language import Language
+from spacy.pipeline.dep_parser import DEFAULT_PARSER_MODEL
+from spacy.tokens import Doc
+
+from eucy import content, elements, entities, structure
+from eucy.entities import references
+from eucy.tokenizer import retokenizer, tokenizer
+from eucy.utils import (get_element_by_match, get_element_by_num,
+                        set_extensions, timeout)
+
 
 class EuWrapper:
-
     """EuCy wrapper class for a spacy Language object
         (not a real pipeline component)"""
 
-
-
-    def __init__(self, nlp, debug = False):
-
+    def __init__(self, nlp, debug=False):
         """
         Initialize EuWrapper object
 
@@ -40,8 +37,8 @@ class EuWrapper:
         if not isinstance(nlp, Language):
             raise TypeError("nlp must be a spacy Language object")
 
-        nlp.tokenizer = tokenizer (nlp)
-        nlp.add_pipe("retokenizer", last = True, name = "retokenizer")
+        nlp.tokenizer = tokenizer(nlp)
+        nlp.add_pipe("retokenizer", last=True, name="retokenizer")
 
         self.debug = debug
 
@@ -52,12 +49,15 @@ class EuWrapper:
         self.EuStructure = structure.Structure()
         self.EuElements = elements.Elements()
 
-        self.EuReferenceSearch = entities.EntitySearch(name = "references", nlp = self.nlp, matcher = references.ReferenceMatcher, overwrite_ents=True, debug=self.debug)
+        self.EuReferenceSearch = entities.EntitySearch(
+            name="references",
+            nlp=self.nlp,
+            matcher=references.ReferenceMatcher,
+            overwrite_ents=True,
+            debug=self.debug)
 
         # Register extensions
         set_extensions()
-
-
 
         #
 
@@ -83,10 +83,9 @@ class EuWrapper:
         elif not isinstance(doc, Doc):
             raise TypeError("doc must be a spacy Doc object or a string")
 
+        doc._.title = content.find_title(doc)
 
-        doc._.title = content.find_title (doc)
-
-        if (len (doc.text.strip ()) - len (doc._.title.strip ())) < 500:
+        if (len(doc.text.strip()) - len(doc._.title.strip())) < 500:
             doc._.no_text = True
 
         if not doc._.no_text:
@@ -108,17 +107,15 @@ class EuWrapper:
                     'recitals': recital_count(doc),
                     'articles': article_count(doc),
                     'structural_size': structural_size(doc, "all"),
-                    'structural_size_enacting': structural_size (doc, "enacting"),
+                    'structural_size_enacting':
+                    structural_size(doc, "enacting"),
                     'references': reference_count(doc),
                     'avg_depth': avg_depth(doc, basis='element'),
-                    'avg_article_depth': avg_depth (doc, basis='article'),
+                    'avg_article_depth': avg_depth(doc, basis='article'),
                     'words_noannex': word_count(doc, annex=False)
                 }
 
-
         return doc
-
-
 
 
 def citation_count(doc):
@@ -130,7 +127,8 @@ def citation_count(doc):
 
         doc = EuDoc(doc)
 
-    return(len(doc.spans['citations']))
+    return (len(doc.spans['citations']))
+
 
 def recital_count(doc):
 
@@ -141,7 +139,8 @@ def recital_count(doc):
 
         doc = EuDoc(doc)
 
-    return(len(doc.spans['recitals']))
+    return (len(doc.spans['recitals']))
+
 
 def count_articles():
 
@@ -150,33 +149,38 @@ def count_articles():
     # @TODO: various methods for article counting (see older analysis)
     pass
 
+
 def matched_articles_count(doc):
-    if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
+    if not doc.has_extension("parts") or not doc.has_extension(
+            "article_elements"):
         # if function is called outside spacy pipeline
 
         EuDoc = EuWrapper
 
         doc = EuDoc(doc)
 
-    return (len (doc.spans['articles']))
+    return (len(doc.spans['articles']))
 
 
 def last_matched_article_num(doc):
 
     raise NotImplementedError
 
-    if not doc.has_extension ("parts") or not doc.has_extension ("article_elements"):
+    if not doc.has_extension("parts") or not doc.has_extension(
+            "article_elements"):
         # if function is called outside spacy pipeline
 
         EuDoc = EuWrapper
 
-        doc = EuDoc (doc)
+        doc = EuDoc(doc)
 
     # @TODO (see older analysis)
     pass
 
+
 def article_count(doc):
-    if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
+    if not doc.has_extension("parts") or not doc.has_extension(
+            "article_elements"):
         # if function is called outside spacy pipeline
 
         EuDoc = EuWrapper
@@ -186,12 +190,13 @@ def article_count(doc):
     # @TODO methods in older analysis
     ## using distance measures
 
-    return(matched_articles_count(doc))
+    return (matched_articles_count(doc))
 
 
-def structural_size(doc, parts = "all"):
+def structural_size(doc, parts="all"):
 
-    if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
+    if not doc.has_extension("parts") or not doc.has_extension(
+            "article_elements"):
         # if function is called outside spacy pipeline
 
         EuDoc = EuWrapper
@@ -203,7 +208,9 @@ def structural_size(doc, parts = "all"):
     # loop over articles
     for article in doc._.article_elements:
         # loop over (sub)paragraphs in article
-        for subpar, subparpoints, subparindents in zip(article['subpars'], article['points'], article['indents']):
+        for subpar, subparpoints, subparindents in zip(article['subpars'],
+                                                       article['points'],
+                                                       article['indents']):
             enacting_size += len(subpar)
 
             for indents, points in zip(subparindents, subparpoints):
@@ -217,18 +224,17 @@ def structural_size(doc, parts = "all"):
         return enacting_size + recital_size
 
 
-def avg_depth(doc, basis = "element"):
+def avg_depth(doc, basis="element"):
 
-    if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
+    if not doc.has_extension("parts") or not doc.has_extension(
+            "article_elements"):
         # if function is called outside spacy pipeline
 
         EuDoc = EuWrapper
 
         doc = EuDoc(doc)
 
-    depths = {1: 0,
-              2: 0,
-              3: 0}
+    depths = {1: 0, 2: 0, 3: 0}
 
     articles_levels = []
 
@@ -244,7 +250,9 @@ def avg_depth(doc, basis = "element"):
         else:
             par_level = 1
 
-        for i, (subpar, subparpoints, subparindents) in enumerate(zip(article['subpars'], article['points'], article['indents'])):
+        for i, (subpar, subparpoints, subparindents) in enumerate(
+                zip(article['subpars'], article['points'],
+                    article['indents'])):
 
             article_levels.append(par_level)
 
@@ -267,21 +275,25 @@ def avg_depth(doc, basis = "element"):
             if len(articles_levels) == 0:
                 return None
             else:
-                return sum([sum(lvl)/len(lvl) for lvl in articles_levels if len(lvl) != 0])/len(articles_levels)
+                return sum([
+                    sum(lvl) / len(lvl)
+                    for lvl in articles_levels if len(lvl) != 0
+                ]) / len(articles_levels)
         elif basis == "element":
             # average element depth
             if len(articles_levels) == 0:
                 return None
             else:
-                return sum([sum(lvl) for lvl in articles_levels])/sum([len(l) for l in articles_levels])
+                return sum([sum(lvl) for lvl in articles_levels]) / sum(
+                    [len(l) for l in articles_levels])
     except:
         return None
 
 
-
 def reference_count(doc):
 
-    if not doc.has_extension("parts") or not doc.has_extension("article_elements"):
+    if not doc.has_extension("parts") or not doc.has_extension(
+            "article_elements"):
         # if function is called outside spacy pipeline
 
         EuDoc = EuWrapper
@@ -300,7 +312,6 @@ def reference_count(doc):
     return ref_count
 
 
-
 def word_count(doc, annex=False):
     if not doc.has_extension("parts"):
         # if function is called outside spacy pipeline
@@ -309,7 +320,9 @@ def word_count(doc, annex=False):
 
         doc = EuDoc(doc)
 
-    word_count = sum([len(r) for r in doc.spans['recitals']]) + sum([len(c) for c in doc.spans['citations']]) + sum([len(a) for a in doc.spans['articles']])
+    word_count = sum([len(r) for r in doc.spans['recitals']]) + sum([
+        len(c) for c in doc.spans['citations']
+    ]) + sum([len(a) for a in doc.spans['articles']])
 
     if annex:
         word_count += len(doc.spans['annex'])

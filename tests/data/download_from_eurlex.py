@@ -1,14 +1,20 @@
 import argparse
 import os
 import re
-import requests
 import time
+
+import requests
+
 from eucy import regex as eure
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("input",nargs="*")
-parser.add_argument("-v", "--verbose", action="count", default=0, help="prints out iterations in parallel processing")
+parser.add_argument("input", nargs="*")
+parser.add_argument("-v",
+                    "--verbose",
+                    action="count",
+                    default=0,
+                    help="prints out iterations in parallel processing")
 parser.add_argument("-r", "--replace", action="store_true", default=False)
 parser.add_argument("-o", "--outdir", default="data")
 
@@ -16,6 +22,7 @@ args = parser.parse_args()
 
 if not os.path.exists(args.outdir):
     os.makedirs(args.outdir)
+
 
 def is_celex_id(id):
 
@@ -32,6 +39,7 @@ def is_celex_id(id):
     else:
         return False
 
+
 def extract_celex_id(url):
 
     # cut off everything before CELEX
@@ -43,7 +51,6 @@ def extract_celex_id(url):
     return url
 
 
-
 def is_url(id):
 
     id = id.strip()
@@ -53,11 +60,13 @@ def is_url(id):
     else:
         return False
 
+
 def make_eurlex_text_url(id):
 
     id = id.strip()
 
-    return "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:{}".format(id)
+    return "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:{}".format(
+        id)
 
 
 if args.input:
@@ -68,10 +77,13 @@ if args.input:
     else:
         ids = args.input
 
-urls = [id if is_url(id) else make_eurlex_text_url(id) for id in ids if id.strip != ""]
+urls = [
+    id if is_url(id) else make_eurlex_text_url(id) for id in ids
+    if id.strip != ""
+]
 
 if args.verbose:
-    print(str(len(urls)) +" valid urls found")
+    print(str(len(urls)) + " valid urls found")
 
 for url in urls:
     if args.verbose:
@@ -108,7 +120,8 @@ for url in urls:
 
     if download_success:
 
-        if args.replace or not os.path.exists(os.path.join(args.outdir, filename)):
+        if args.replace or not os.path.exists(
+                os.path.join(args.outdir, filename)):
 
             if args.verbose:
                 print("\tSaving to " + filename)

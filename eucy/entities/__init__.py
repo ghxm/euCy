@@ -1,32 +1,38 @@
-from spacy.pipeline import EntityRuler
-from spacy.tokens.span import Span
-from spacy.tokens import Doc
-from eucy.entities import references
 from spacy import util
+from spacy.pipeline import EntityRuler
+from spacy.tokens import Doc
+from spacy.tokens.span import Span
+
+from eucy.entities import references
 
 # @TODO: add EntitySearch class here
 # @TODO: add extra filed with classes and ufncitons/methods that inherit from EntitySarch in this directory, e.g. references.py class References
 
-class EntitySearch(EntityRuler):
 
+class EntitySearch(EntityRuler):
     """A custom EntityRuler object allowing for a custom Matcher (e.g. used for references)
     Custom logic, e.g. search by paragraph etc for references, is implemented in the Matcher"""
 
-    def __init__(self, matcher, add_details_as_label = False, extension_detail_prefix = "", debug=False, **kwargs):
+    def __init__(self,
+                 matcher,
+                 add_details_as_label=False,
+                 extension_detail_prefix="",
+                 debug=False,
+                 **kwargs):
 
         # super etc
         super().__init__(**kwargs)
 
-        self.debug=debug
+        self.debug = debug
 
         if not Span.has_extension("references"):
-            Span.set_extension("references", default = None)
-
+            Span.set_extension("references", default=None)
 
         self.matcher = matcher()
 
-
-    def match(self, doc: Doc): # overwrite match function for parent object (this is called in the __call__ function), return matches
+    def match(
+        self, doc: Doc
+    ):  # overwrite match function for parent object (this is called in the __call__ function), return matches
 
         # match references
         matches = self.matcher(doc)
@@ -35,29 +41,30 @@ class EntitySearch(EntityRuler):
 
     def set_annotations(self, doc, matches):
         """Modify the document in place"""
-        entities = list (doc.ents)
+        entities = list(doc.ents)
         new_entities = []
-        seen_tokens = set ()
+        seen_tokens = set()
         for label, start, end in matches:
-            span = Span (doc, start, end, label=label)
+            span = Span(doc, start, end, label=label)
 
             span._.references = references.resolve_reference_entities(span)
 
             if self.debug:
-                print ("TEXT")
-                print (span.text)
-                print ("REFERENCES")
-                [print (str(ref) + '\r') for ref in span._.references]
+                print("TEXT")
+                print(span.text)
+                print("REFERENCES")
+                [print(str(ref) + '\r') for ref in span._.references]
                 print('\n')
 
-            if any (t.ent_type for t in span) and not self.overwrite:
+            if any(t.ent_type for t in span) and not self.overwrite:
                 continue
             # check for end - 1 here because boundaries are inclusive
             if start not in seen_tokens and end - 1 not in seen_tokens:
-                new_entities.append (span)
+                new_entities.append(span)
                 entities = [
-                    e for e in entities if not (e.start < end and e.end > start)
+                    e for e in entities
+                    if not (e.start < end and e.end > start)
                 ]
-                seen_tokens.update (range (start, end))
+                seen_tokens.update(range(start, end))
         ents = util.filter_spans(entities + new_entities)
         doc.ents = ents

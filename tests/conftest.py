@@ -2,31 +2,36 @@
 """Tests for `euCy` package."""
 # pylint: disable=redefined-outer-name
 
+import os
+
+import pandas as pd
 import pytest
+import spacy
 from pytest_lazyfixture import lazy_fixture
 
-import spacy
-import os
 from eucy import utils
 from eucy.eucy import EuWrapper
-import pandas as pd
-
 
 # FIXTURES
+
 
 def get_results():
     """Read in hand-annotated results"""
 
-    results = pd.read_csv('data/hhk_reliability.csv')
+    results = pd.read_csv('tests/data/hhk_reliability.csv')
 
     # make corrections
-    results.loc[results['celex_id'] == '52011PC0654', 'doc_proposal_articles'] = 12
-    results.loc[results['celex_id'] == '52007PC0491', 'doc_proposal_recitals'] = 7
+    results.loc[results['celex_id'] == '52011PC0654',
+                'doc_proposal_articles'] = 12
+    results.loc[results['celex_id'] == '52007PC0491',
+                'doc_proposal_recitals'] = 7
 
     return results
 
+
 cases_celex_ids = get_results()['celex_id'].unique()
-html_dir = os.listdir('data/proposals')
+html_dir = os.listdir('tests/data/proposals')
+
 
 @pytest.fixture
 def results():
@@ -36,7 +41,8 @@ def results():
 
     return results
 
-def result_by_id(celex_id, results = None):
+
+def result_by_id(celex_id, results=None):
     """Hand-annotated results fixture"""
 
     if results is None:
@@ -44,11 +50,16 @@ def result_by_id(celex_id, results = None):
 
     result = results[results['celex_id'] == celex_id]
 
-    assert len(result) == 1, "more than one result for celex_id {}".format(celex_id)
+    assert len(result) == 1, "more than one result for celex_id {}".format(
+        celex_id)
 
     res = result.to_dict()
 
-    res = {k.replace('doc_proposal_',''): [(ke, va) for ke, va in v.items()][0][1] for k, v in res.items()}
+    res = {
+        k.replace('doc_proposal_', ''):
+        [(ke, va) for ke, va in v.items()][0][1]
+        for k, v in res.items()
+    }
 
     return res
 
@@ -66,6 +77,7 @@ def nlp(request):
 
     return nlp
 
+
 @pytest.fixture
 def eu_wrapper(nlp):
     """euCy wrapper fixture"""
@@ -75,15 +87,15 @@ def eu_wrapper(nlp):
     return eu_wrapper
 
 
-
 @pytest.fixture(params=cases_celex_ids)
 def html(request):
     """Sample text html fixture"""
 
-    with open('data/proposals/' + request.param + '.html', 'r') as p:
+    with open('tests/data/proposals/' + request.param + '.html', 'r') as p:
         sample_text_html = p.read()
 
     return sample_text_html
+
 
 @pytest.fixture
 def text(html):
@@ -92,6 +104,8 @@ def text(html):
     text = utils.text_from_html(html)
 
     return text
+
+
 @pytest.fixture
 def eu_wrapper(nlp):
     """euCy wrapper fixture"""
@@ -99,6 +113,7 @@ def eu_wrapper(nlp):
     eu_wrapper = EuWrapper(nlp)
 
     return eu_wrapper
+
 
 @pytest.fixture
 def eudoc(nlp, eu_wrapper, text):
@@ -109,6 +124,7 @@ def eudoc(nlp, eu_wrapper, text):
 
     return eudoc
 
+
 @pytest.fixture
 def eudocs(nlp, eu_wrapper):
     """spaCy docs fixture"""
@@ -117,7 +133,7 @@ def eudocs(nlp, eu_wrapper):
 
     for id in cases_celex_ids:
 
-        with open('data/proposals/' + id + '.html', 'r') as p:
+        with open('tests/data/proposals/' + id + '.html', 'r') as p:
             sample_text_html = p.read()
 
         htmls.append(sample_text_html)
@@ -131,22 +147,20 @@ def eudocs(nlp, eu_wrapper):
     return eudocs
 
 
-
 @pytest.fixture
 def euplex_dataset_results(results):
     """Read in euplex dataset"""
 
     # download euplex dataset and read in
-    euplex = pd.read_csv('data/euplex_dataset_results.csv') # read in subset of jan 2023 version
+    euplex = pd.read_csv('tests/data/euplex_dataset_results.csv'
+                         )  # read in subset of jan 2023 version
 
     return euplex
-
 
 
 @pytest.fixture
 def euplex_alphas():
     """ ICR results from the euplex dataset paper """
-
 
     # krippendorrf's alphas from paper annex
     return {
@@ -180,5 +194,4 @@ def euplex_alphas():
             'ordinal': 0.904,
             'interval': 0.977
         }
-
     }
