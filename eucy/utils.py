@@ -1079,3 +1079,10 @@ def elements_to_text(doc,
     text += '\n\n</enactingTerms>\n\n' if element_markup else '\n\n'
 
     return text
+
+
+def is_eucy_doc(doc):
+    """Checks if the given doc object is a euCy doc object"""
+
+    return isinstance(doc, Doc) and doc.has_extension(
+        'article_elements') and doc.has_extension('parts')
