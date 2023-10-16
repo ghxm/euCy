@@ -54,8 +54,8 @@ def _replace_text(doc, new_text, keep_ws=True, deletion_threshold=None):
     # add ws to new text
     new_text = ws_start + new_text + ws_end
 
-    if deletion_threshold is not None and new_text.strip(
-    ) > deletion_threshold:
+    if deletion_threshold is not None and len(new_text.strip(
+    )) > deletion_threshold:
         doc._.deleted = True
 
     # set replacement text
