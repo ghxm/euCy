@@ -128,8 +128,10 @@ def modify_doc(doc,
     assert isinstance(doc, Doc), 'doc must be a spaCy Doc'
 
     if nlp is None:
-        # load blank model
-        nlp = spacy.blank("en")
+        if eu_wrapper:
+            nlp = eu_wrapper.nlp
+        else:
+            nlp = spacy.blank("en")
 
     new_text = ''
     old_text = doc.text
