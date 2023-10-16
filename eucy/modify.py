@@ -365,11 +365,11 @@ def modify_doc(doc,
     new_doc._.parts = new_parts
 
     # @TODO possible to recover article_elements? -> otherwise elements might no be detected by e.g. elemount count as in current setup -> adjust eucywrapper to work with preconfiugred spans
-    # @TODO re-run eu-wrapper to get complexity and other metadata
+    # re-run eu-wrapper to get complexity and other metadata
     if eu_wrapper is None:
         from eucy.eucy import EuWrapper
 
-        nlp = spacy.load('en_core_web_sm')
+        nlp = spacy.blank("en")
         eu_wrapper = EuWrapper(nlp)
 
     new_doc = eu_wrapper(new_doc)
