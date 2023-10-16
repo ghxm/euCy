@@ -3,7 +3,6 @@
 import warnings
 from collections import Counter
 
-import en_core_web_sm
 from spacy.language import Language
 from spacy.pipeline.dep_parser import DEFAULT_PARSER_MODEL
 from spacy.tokens import Doc
