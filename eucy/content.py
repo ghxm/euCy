@@ -3,6 +3,8 @@ import re
 
 def find_title(doc):
 
+    title = None
+
     text = doc.text
     long_lines = re.findall(
         r'^.*?(?:[A-Za-z]+[ ]+[A-Za-z ,\.]{5,}|ANNEX|Annex).*', text,
