@@ -1,11 +1,11 @@
 [tool]
 [tool.poetry]
 name = "euCy"
-version = "version = "0.1.0""
+version = "0.1.0"
 homepage = "https://github.com/ghxm/eucy"
 description = "spaCy pipeline component for analyzing the complexity of EU legal texts."
 authors = ["Maximilian Haag <maximilian.haag@gsi.uni-muenchen.de>"]
-readme = "README.rst"
+readme = "README.md"
 license =  "MIT"
 classifiers=[
     'Development Status :: 2 - Pre-Alpha',

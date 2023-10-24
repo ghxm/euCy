@@ -20,8 +20,9 @@ pip install git+https://github.com/ghxm/euCy.git
 
 ## Usage
 
-
 - TODO
+
+For an overview of the usage and functionality, please see the `tests` folder in the meantime.
 
 
 ## Credits
