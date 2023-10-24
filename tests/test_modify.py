@@ -1,7 +1,8 @@
+#!/usr/bin/env python
+"""Tests for `euCy` package to ensure modification of documents and elements works."""
+# pylint: disable=redefined-outer-name
+
 import random
-
-import pytest
-
 from eucy import modify
 
 

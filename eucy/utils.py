@@ -424,7 +424,7 @@ def clean_text(text, rm_fn=True):
     text = _fix_spaced_spelling(text, term="Article", flags=re.IGNORECASE)
     text = _fix_spaced_spelling(text, term="Articles", flags=re.IGNORECASE)
 
-    return (text.strip())
+    return text.strip()
 
 
 def _fix_spaced_spelling(text, term, regex_pre=r'', regex_post=r'', flags=0):

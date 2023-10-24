@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Tests for `euCy` package."""
+"""Tests for `euCy` package to ensure annotation of individial parts and elements works."""
 # pylint: disable=redefined-outer-name
 
 import krippendorff
