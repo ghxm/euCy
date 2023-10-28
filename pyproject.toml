@@ -1,7 +1,7 @@
 [tool]
 [tool.poetry]
 name = "euCy"
-version = "0.1.0"
+version = "0.0.0"
 homepage = "https://github.com/ghxm/euCy"
 description = "spaCy pipeline component for analyzing the complexity of EU legal texts."
 authors = ["Maximilian Haag <maximilian.haag@gsi.uni-muenchen.de>"]
