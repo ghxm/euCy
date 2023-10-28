@@ -2,4 +2,4 @@
 
 __author__ = """Maximilian Haag"""
 __email__ = "mail@mxhg.org"
-__version__ = "0.0.0"
+__version__ = "0.1.0-beta"
