@@ -6,7 +6,6 @@
 Tool to annotate EU legal text and compute some related measures based on spaCy.
 
 
-
 ## Installation
 
 
