@@ -45,6 +45,8 @@ def _replace_text(doc, new_text, keep_ws=True, deletion_threshold=None):
     # make sure the replacement_text extension exists
     if not doc.has_extension('replacement_text'):
         doc.set_extension('replacement_text', default=None)
+        # make sure the replacement_text extension exists
+    if not doc.has_extension('deleted'):
         doc.set_extension('deleted', default=False)
 
     # get ws at beginning and end of original text
@@ -55,7 +57,7 @@ def _replace_text(doc, new_text, keep_ws=True, deletion_threshold=None):
     new_text = ws_start + new_text + ws_end
 
     if deletion_threshold is not None and len(new_text.strip(
-    )) > deletion_threshold:
+    )) <= deletion_threshold:
         doc._.deleted = True
 
     # set replacement text
