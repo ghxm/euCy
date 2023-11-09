@@ -141,6 +141,13 @@ def recitals(doc_recitals):
             for i, m in enumerate(recital_matches)
         ]
 
+        if len(recital_matches_pos) > 0:
+            # check last recital for enacting_start
+            enacting_start_m = re.search(eure.structure['enacting_start'], recitals.text[recital_matches_pos[-1][0]:recital_matches_pos[-1][1]])
+            if enacting_start_m:
+                recital_matches_pos[-1] = (recital_matches_pos[-1][0], recital_matches_pos[-1][0] + enacting_start_m.start())
+
+
         if isinstance(doc_recitals, Doc):
             recital_list = [
                 doc_recitals.char_span.char_span(mat[0],
