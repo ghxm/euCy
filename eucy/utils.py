@@ -122,6 +122,7 @@ def _add_element(doc,
                  new_text,
                  element_type=None,
                  position='end',
+                 auto_position=True,
                  add_ws=True):
     """Setter for the add_text extension. Should not be used directly."""
 
@@ -129,11 +130,21 @@ def _add_element(doc,
         'citation', 'recital', 'article'
     ], "element_type must be one of 'citations', 'recitals', 'articles'"
 
-    assert position in ['end', 'start'] or (
-        isinstance(position, int) and
-        (position in range(len(doc.spans[element_type + 's'])))
-        or position == 0
-    ), "position must be one of 'end', 'start' or an integer inside the range of the span group"
+    if not(position in ['end', 'start'] or (
+            isinstance(position, int) and
+            (position in range(len(doc.spans[element_type + 's'])))
+            or position == 0)
+        ):
+        if auto_position:
+            if isinstance(position, int):
+                # determine whether to insert at start or end of span group
+                if position < len(doc.spans[element_type + 's']) / 2:
+                    position = 'start'
+                else:
+                    position = 'end'
+        else:
+            raise AssertionError("position must be one of 'end', 'start' or an integer inside the range of the span group")
+
 
     # add new span to doc
     if position == 'end':
