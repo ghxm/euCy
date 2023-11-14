@@ -1132,7 +1132,7 @@ def find_containing_spans(doc, pos_a, pos_b = None, include_article_elements = F
 
         for article in article_elements:
             for paragraph in article['pars']:
-                containing_spans.append(paragraph)
+                spans_to_check.append(paragraph)
 
     # check all spangroups for spans that contain the given position
 
