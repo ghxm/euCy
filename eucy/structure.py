@@ -100,6 +100,7 @@ def text_parts(doc):
     # try to split the middle part to separate the back matter
 
     middle_end_match = None
+    middle_end_match_char = None
 
     while True:
 
@@ -110,6 +111,7 @@ def text_parts(doc):
                                      flags=re.MULTILINE | re.IGNORECASE)
 
         if middle_end_match is not None:
+            middle_end_match_char = middle_end_match.end()
             break
 
         middle_end_match = re.search(eure.structure['annex_start'],
@@ -117,6 +119,7 @@ def text_parts(doc):
                                      flags=re.MULTILINE | re.IGNORECASE)
 
         if middle_end_match is not None:
+            middle_end_match_char = middle_end_match.end()
             break
 
         # last resort: look for the last article position and match a shortened version of the middle text for some indicators that the enacting terms are done
@@ -139,15 +142,15 @@ def text_parts(doc):
         if middle_end_match is None:
             break
         else:
-            middle_end_match = middle_end_match.group(1)
+            middle_end_match_char = middle_end_match.span(1)[1]
             break
 
     if middle_end_match is not None:
         middle = doc[_to_token(middle.start_char
                                ):_to_token(middle.start_char +
-                                           middle_end_match.end())]
+                                           middle_end_match_char)]
         back = doc[_to_token(middle.start_char +
-                             middle_end_match.end()):_to_token(text_end_char)]
+                             middle_end_match_char):_to_token(text_end_char)]
     else:
         back = None
 
