@@ -1121,12 +1121,12 @@ def find_containing_spans(doc, pos, include_article_elements = False):
     # get a list of spangroups
     spangroups = [sg for sg in doc.spans.keys()]
 
-    if not include_article_elements:
+    if include_article_elements:
         # add article elements to spangroups
         article_elements = doc._.article_elements if doc.has_extension('article_elements') else []
 
         for article in article_elements:
-            for paragraph in article:
+            for paragraph in article['pars']:
                 containing_spans.append(paragraph)
 
     # check all spangroups for spans that contain the given position
