@@ -8,7 +8,7 @@ structure = {
     'enacting_start_lenient':
     r'(?=^\s*H[A-Z]{2,6}?(?<!ING)\b\s+[^a-z]+(?:$|:))',
     'annex_start':
-    r'^(?=\s*^(?=ANNEX|LEGISLATIVE FINANCIAL STATEMENT))|^(?=\s*ANNEX[\s]*(?:[^\n]){0,20}[\n\r]|[\n\r]|\s*[0-9IXV]*)',
+    r'^(?=\s*^(?=\s*(?:ANNEX|LEGISLATIVE FINANCIAL STATEMENT)))|^(?=\s*ANNEX[\s]*(?:[\n\r]|[\n\r]|\s*[0-9IXV]*))',
     'citations_start':
     r'(?:^)(?=[A-Z][a-z]+ing|After)(?!Setting)',
     'recitals_start_whereas':
