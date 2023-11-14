@@ -1101,19 +1101,23 @@ def is_eucy_doc(doc):
         'article_elements') and doc.has_extension('parts')
 
 
-def find_containing_spans(doc, pos, include_article_elements = False):
+def find_containing_spans(doc, pos_a, pos_b = None, include_article_elements = False):
     """Returns a list of spans that contain the given position
 
 
     Parameters
     ----------
     doc (Doc): The doc object to check
-    pos (int): The char position to check
+    pos_a (int): The (start) char position to check
+    pos_b (int): The end char position to check (optional)
 
     Returns
     -------
-    containing_spans (list): A list of spans that contain the given position
+    containing_spans (list): A list of spans that contain the given position ordered by span length (ascending)
     """
+
+    if pos_b:
+        assert pos_a <= pos_b, "pos_a must be smaller than or equal to pos_b"
 
     containing_spans = []
 
@@ -1133,7 +1137,14 @@ def find_containing_spans(doc, pos, include_article_elements = False):
 
     for spangroup in spangroups:
         for span in doc.spans[spangroup]:
-            if span.start_char <= pos and span.end_char >= pos:
-                containing_spans.append(span)
+            if pos_b:
+                if span.start_char <= pos_a and span.end_char >= pos_b:
+                    containing_spans.append(span)
+            else:
+                if span.start_char <= pos_a and span.end_char >= pos_a:
+                    containing_spans.append(span)
+
+    # order by smallest span first
+    containing_spans = sorted(containing_spans, key=lambda x: len(x.text))
 
     return containing_spans
