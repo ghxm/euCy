@@ -1101,25 +1101,35 @@ def is_eucy_doc(doc):
         'article_elements') and doc.has_extension('parts')
 
 
-def find_containing_spans(pos, doc):
+def find_containing_spans(doc, pos, include_article_elements = False):
     """Returns a list of spans that contain the given position
 
 
     Parameters
     ----------
-    pos (int): The char position to check
     doc (Doc): The doc object to check
+    pos (int): The char position to check
 
     Returns
     -------
     containing_spans (list): A list of spans that contain the given position
     """
 
+    containing_spans = []
+
+
     # get a list of spangroups
     spangroups = [sg for sg in doc.spans.keys()]
 
+    if not include_article_elements:
+        # add article elements to spangroups
+        article_elements = doc._.article_elements if doc.has_extension('article_elements') else []
+
+        for article in article_elements:
+            for paragraph in article:
+                containing_spans.append(paragraph)
+
     # check all spangroups for spans that contain the given position
-    containing_spans = []
 
     for spangroup in spangroups:
         for span in doc.spans[spangroup]:
