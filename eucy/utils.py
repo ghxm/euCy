@@ -1119,6 +1119,7 @@ def find_containing_spans(doc, pos_a, pos_b = None, include_article_elements = F
     if pos_b:
         assert pos_a <= pos_b, "pos_a must be smaller than or equal to pos_b"
 
+    spans_to_check = []
     containing_spans = []
 
 
@@ -1136,13 +1137,16 @@ def find_containing_spans(doc, pos_a, pos_b = None, include_article_elements = F
     # check all spangroups for spans that contain the given position
 
     for spangroup in spangroups:
-        for span in doc.spans[spangroup]:
-            if pos_b:
-                if span.start_char <= pos_a and span.end_char >= pos_b:
-                    containing_spans.append(span)
-            else:
-                if span.start_char <= pos_a and span.end_char >= pos_a:
-                    containing_spans.append(span)
+        for gspan in doc.spans[spangroup]:
+            spans_to_check.append(gspan)
+
+    for span in spans_to_check:
+        if pos_b:
+            if span.start_char <= pos_a and span.end_char >= pos_b:
+                containing_spans.append(span)
+        else:
+            if span.start_char <= pos_a and span.end_char >= pos_a:
+                containing_spans.append(span)
 
     # order by smallest span first
     containing_spans = sorted(containing_spans, key=lambda x: len(x.text))
