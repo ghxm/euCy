@@ -180,8 +180,11 @@ def _add_element(doc,
             start = random.randint(0, len(doc.text))
             end = random.randint(start, len(doc.text))
 
-            # check if any spans exist with same start and end
-            new_span = doc.char_span(start, end, alignment_mode='expand')
+            # check to make sure we're not overlapping with an existing span
+            existing_spans = find_containing_spans(doc, start, end, include_article_elements=True)
+
+            if len(existing_spans) == 0:
+                new_span = doc.char_span(start, end, alignment_mode='expand')
 
         new_span._.replacement_text = new_text
     else:
