@@ -7,7 +7,7 @@ from spacy.tokens import Doc, Span, SpanGroup
 from eucy.utils import set_extensions
 
 
-def add_element(doc, new_text, element_type=None, position='end', add_ws=True):
+def add_element(doc, new_text, element_type=None, position='end', article=None, paragraph = None, subparagraph = None, indent = None, point = None, add_ws=True):
     """Adds new text to a doc/span object and returns the object with the new text in the ._.add_text attribute
 
     Parameters
@@ -19,7 +19,16 @@ def add_element(doc, new_text, element_type=None, position='end', add_ws=True):
     element_type (str):
         The type of the new text. Must be one of 'citation', 'recital', 'article'. Other types are not supported yet. Default is None.
     position (str):
-        The position to add the new text. Must be one of 'end', 'start' or an integer specifying the position in the  Default is 'end'.
+        The position to add the new text. Must be one of 'end', 'start' or an integer specifying the position. Default is 'end'.
+    article (int):
+        The article number of the new text (uses `_add_article_element` ignoring `element_type` and `position`). Default is None.
+    paragraph (int, str):
+        The paragraph number of the new text (uses `_add_article_element` ignoring `element_type` and `position`). Must be one of 'end', 'start' or an integer specifying the position. Default is None.
+    subparagraph (int):
+        The subparagraph number of the new text (uses `_add_article_element` ignoring `element_type` and `position`). Must be one of 'end', 'start' or an integer specifying the position. Default is None.
+    indent (int):
+        The indent number of the new text (uses `_add_article_element` ignoring `element_type` and `position`). Must be one of 'end', 'start' or an integer specifying the position. Default is None.
+
     add_ws (bool):
         Whether to add whitespace around the new text. Default is True.
 
@@ -37,10 +46,25 @@ def add_element(doc, new_text, element_type=None, position='end', add_ws=True):
     # make sure the doc has the extensions
     set_extensions(doc)
 
-    doc._.add_element(new_text,
-                      element_type=element_type,
-                      position=position,
-                      add_ws=add_ws)
+    if element_type and element_type in ['citation', 'recital', 'article']:
+
+        doc._.add_element(new_text,
+                          element_type=element_type,
+                          position=position,
+                          add_ws=add_ws)
+
+    elif not element_type and any(['article', 'paragraph', 'subparagraph', 'indent', 'point']):
+
+        doc._.add_article_element(new_text,
+                       article=article,
+                       paragraph=paragraph,
+                          subparagraph=subparagraph,
+                            indent=indent,
+                            point=point,
+                       add_ws=add_ws)
+
+    else:
+        raise ValueError("element_type must be one of 'citation', 'recital', 'article' or None. If None, article, paragraph, subparagraph, indent, or point must be specified.")
 
     return doc
 

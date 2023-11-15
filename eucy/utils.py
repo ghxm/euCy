@@ -118,51 +118,38 @@ def _delete_text(doc, warn_empty_group=True, keep_ws=True):
                 )
 
 
-def _add_element(doc,
-                 new_text,
-                 element_type=None,
-                 position='end',
-                 auto_position=True,
-                 add_ws=True):
-    """Setter for the add_text extension. Should not be used directly."""
 
-    assert element_type in [
-        'citation', 'recital', 'article'
-    ], "element_type must be one of 'citations', 'recitals', 'articles'"
-
-    if not(position in ['end', 'start'] or (
-            isinstance(position, int) and
-            (position in range(len(doc.spans[element_type + 's'])))
-            or position == 0)
-        ):
-        if auto_position:
-            if isinstance(position, int):
-                # determine whether to insert at start or end of span group
-                if position < len(doc.spans[element_type + 's']) / 2:
-                    position = 'start'
-                else:
-                    position = 'end'
+def _auto_position(position, element_list_length, return_int=False):
+    if isinstance(position, int):
+        if position < element_list_length / 2:
+            if return_int:
+                return 0
+            return 'start'
         else:
-            raise AssertionError("position must be one of 'end', 'start' or an integer inside the range of the span group")
+            if return_int:
+                return element_list_length
+            return 'end'
+    elif isinstance(position, str) and position in ['start', 'end']:
+        if position == 'start':
+            if return_int:
+                return 0
+            return 'start'
+        else:
+            if return_int:
+                return element_list_length
+            return 'end'
 
+    raise ValueError("position must be an integer or 'start' or 'end'")
 
-    # add new span to doc
-    if position == 'end':
-        position = len(doc.spans[element_type + 's'])
-    elif position == 'start':
-        position = 0
-
-    if position > len(doc.spans[element_type + 's']):
-        position = len(doc.spans[element_type + 's'])
-
+def _new_element_span(doc, new_text, add_ws = True):
     # check if doc is a doc or span object
     assert isinstance(doc, (Doc)), "doc must be a Doc object"
 
     # check if new text is a string
-    assert isinstance(new_text, (str, Span)), "New text must be a string"
+    assert isinstance(new_text, (str, Span)), "New text must be a string or a Span object"
 
+    # prepare new span
     # make sure the add_text extension exists
-
     if isinstance(new_text, Span):
         if not new_text.has_extension('new_element'):
             Span.set_extension('new_element', default=False)
@@ -200,6 +187,167 @@ def _add_element(doc,
 
     # set new element flag
     new_span._.new_element = True
+
+    return new_span
+
+def _add_article_element(doc,
+                         new_text,
+                         article,
+                         paragraph=None,
+                         subparagraph=None,
+                         indent=None,
+                         point=None,
+                         auto_position = True,
+                         add_ws=True):
+    """Setter for the add_element extension. Should not be used directly."""
+
+    assert isinstance(article, int), "article must be an integer"
+    assert any([paragraph, subparagraph, indent, point]), "at least one of paragraph, subparagraph, indent or point must be specified"
+
+    article_elements = doc._.article_elements[article]
+
+    #if subparagraph and not paragraph:
+    #    raise ValueError("paragraph must be specified if subparagraph is specified")
+
+    if paragraph and not ((isinstance(paragraph, int) and paragraph in range(len(article_elements['pars']))) or paragraph in ['start', 'end']):
+        if auto_position and isinstance(paragraph, int):
+            paragraph = _auto_position(paragraph, len(article_elements['pars']), return_int=True)
+        else:
+            raise ValueError("paragraph must be an integer inside the range of the paragraph list")
+    elif paragraph and paragraph in ['start', 'end']:
+        paragraph = _auto_position(paragraph, len(article_elements['pars']), return_int=True)
+
+    if subparagraph and not ((isinstance(subparagraph, int) and subparagraph in range(len(article_elements['subpars'][paragraph]))) or subparagraph in ['start', 'end']):
+        if auto_position and isinstance(subparagraph, int):
+            subparagraph = _auto_position(subparagraph, len(article_elements['subpars'][paragraph]), return_int=True)
+        else:
+            raise ValueError("subparagraph must be an integer inside the range of the subparagraph list")
+    elif subparagraph and subparagraph in ['start', 'end']:
+        subparagraph = _auto_position(subparagraph, len(article_elements['subpars'][paragraph]), return_int=True)
+
+    if indent and not ((isinstance(indent, int) and indent in range(len(article_elements['indents'][paragraph][subparagraph]))) or indent in ['start', 'end']):
+        if auto_position and isinstance(indent, int):
+            indent = auto_position(indent, len(article_elements['indents'][paragraph][subparagraph]), return_int=True)
+        else:
+            raise ValueError("indent must be an integer inside the range of the indent list")
+    elif indent and indent in ['start', 'end']:
+        indent = auto_position(indent, len(article_elements['indents'][paragraph][subparagraph]), return_int=True)
+
+    if point and not ((isinstance(point, int) and point in range(len(article_elements['points'][paragraph][subparagraph][indent]))) or point in ['start', 'end']):
+        if auto_position and isinstance(point, int):
+            point = auto_position(point, len(article_elements['points'][paragraph][subparagraph]), return_int=True)
+        else:
+            raise ValueError("point must be an integer inside the range of the point list")
+    elif point and point in ['start', 'end']:
+        point = auto_position(point, len(article_elements['points'][paragraph][subparagraph]), return_int=True)
+
+    new_span = _new_element_span(doc, new_text, add_ws=True)
+
+    # if no further information is given, we're in the first (sub)paragraph
+    if not paragraph:
+        paragraph = 1
+
+    if not subparagraph:
+        subparagraph = 1
+
+    # start processing from the most nested element
+    article_element_type = None
+    article_elements_spans = None
+
+    spans_without_new_elements = lambda x: [
+        s for s in x if not s._.new_element
+    ]
+
+    # TODO handle cases where point AND indent are specified?
+    # determine char_pos of new element
+    if point:
+        position = point
+        article_element_type = 'points'
+        article_elements_spans = article_elements['points'][paragraph][subparagraph]
+    elif indent:
+        position = indent
+        article_element_type = 'indents'
+        article_elements_spans = article_elements['indents'][paragraph][subparagraph]
+    elif subparagraph:
+        position = subparagraph
+        article_element_type = 'subpars'
+        article_elements_spans = article_elements['subpars'][paragraph]
+    elif paragraph:
+        position = paragraph
+        article_element_type = 'pars'
+        article_elements_spans = article_elements['pars']
+
+    if article_element_type in ['indents', 'points'] and  len(spans_without_new_elements(article_element_type)) == 0:
+            # case where no pre-existing elements of the same type exist
+            ## use subparagraph end char pos
+            new_span._.char_pos = spans_without_new_elements(article_elements['subpars'][article])[subparagraph-1].end_char
+    else:
+        if position in range(len(spans_without_new_elements(article_elements_spans))):
+            ## insert at position
+            new_span._.char_pos = spans_without_new_elements(article_elements_spans)[position - 1].start_char
+        else:
+            ## insert at end
+            new_span._.char_pos = spans_without_new_elements(article_elements_spans)[-1].end_char
+
+    # insert into span group at position in a bit of a hacky way
+    new_article_elements_spans = [
+        e for i, e in enumerate(article_elements_spans) if i < position
+    ] + [new_span] + [
+        e for i, e in enumerate(article_elements_spans) if i >= position
+    ]
+
+    if article_element_type == 'points':
+        article_elements['points'][paragraph][subparagraph] = new_article_elements_spans
+    elif article_element_type == 'indents':
+        article_elements['indents'][paragraph][subparagraph] = new_article_elements_spans
+    elif article_element_type == 'subpars':
+        article_elements['subpars'][paragraph] = new_article_elements_spans
+    elif article_element_type == 'pars':
+        article_elements['pars'] = new_article_elements_spans
+
+    # re-assign article elements
+    doc._.article_elements[article] = article_elements
+
+
+
+
+
+
+
+
+
+
+
+
+def _add_element(doc,
+                 new_text,
+                 element_type=None,
+                 position='end',
+                 auto_position=True,
+                 add_ws=True):
+    """Setter for the add_element extension. Should not be used directly."""
+
+    assert element_type in [
+        'citation', 'recital', 'article'
+    ], "element_type must be one of 'citations', 'recitals', 'articles'"
+
+    if not(position in ['end', 'start'] or (
+            isinstance(position, int) and
+            (position in range(len(doc.spans[element_type + 's'])))
+            or position == 0)
+        ):
+        if auto_position and isinstance(position, int):
+                # determine whether to insert at start or end of span group
+            position = _auto_position(position, len(doc.spans[element_type + 's']), return_int=True)
+        else:
+            raise AssertionError("position must be one of 'end', 'start' or an integer inside the range of the span group")
+    elif position in ['end', 'start']:
+        position = _auto_position(position, len(doc.spans[element_type + 's']), return_int=True)
+
+    if position > len(doc.spans[element_type + 's']):
+        position = len(doc.spans[element_type + 's'])
+
+    new_span = _new_element_span(doc, new_text, add_ws=add_ws)
 
     spangroup_name = element_type + 's'
 
