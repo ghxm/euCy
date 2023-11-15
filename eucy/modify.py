@@ -4,7 +4,7 @@ import warnings
 import spacy
 from spacy.tokens import Doc, Span, SpanGroup
 
-from eucy.utils import set_extensions
+from eucy.utils import set_extensions, determine_span_group_order
 
 
 def add_element(doc, new_text, element_type=None, position='end', article=None, paragraph = None, subparagraph = None, indent = None, point = None, add_ws=True):
@@ -181,7 +181,7 @@ def modify_doc(doc,
     Span.set_extension("added", method=new_doc_span, force=True)
 
     # get all non-overlapping spangroups
-    non_overlap_span_groups = ['citations', 'recitals', 'articles']
+    non_overlap_span_groups = determine_span_group_order(doc)
 
     old_spans = {}
 
@@ -199,6 +199,9 @@ def modify_doc(doc,
                 [s.start_char for s in item[1]
                  if not s._.new_element] + [len(doc.text)]))
     }  # sort by start char of first span if not a new element (add len of doc so that there's no exception in case of empty group)
+
+    # TODO account for (changes) article_elements? -> otherwise elements might no be detected by e.g. elemount count as in current setup -> adjust eucywrapper to work with preconfiugred spans
+
 
     # create new text
     for k, spangroup in old_spans.items():
@@ -390,7 +393,6 @@ def modify_doc(doc,
     # add new parts to new doc
     new_doc._.parts = new_parts
 
-    # @TODO possible to recover article_elements? -> otherwise elements might no be detected by e.g. elemount count as in current setup -> adjust eucywrapper to work with preconfiugred spans
     # re-run eu-wrapper to get complexity and other metadata
     if eu_wrapper is None:
         from eucy.eucy import EuWrapper

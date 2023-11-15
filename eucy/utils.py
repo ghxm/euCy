@@ -1305,3 +1305,16 @@ def find_containing_spans(doc, pos_a, pos_b = None, include_article_elements = F
     containing_spans = sorted(containing_spans, key=lambda x: len(x.text))
 
     return containing_spans
+
+
+def determine_span_group_order(doc):
+    """Return the order of the span groups (citations, recitals, articles) in the given doc object"""
+
+    sg_labels = ['citations', 'recitals', 'articles']
+
+    # order labels by span group start position
+    sg_labels = sorted(sg_labels, key=lambda x: doc.spans[x][0].start)
+
+    return sg_labels
+
+
