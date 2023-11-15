@@ -177,14 +177,16 @@ def _add_element(doc,
         while new_span is None or new_span._.replacement_text is not None:
 
             # choose a random start and end char pos
-            start = random.randint(0, len(doc.text))
-            end = random.randint(start, len(doc.text))
+            start = random.randint(0, len(doc.text)-1)
+            end = start+1
+
+            new_span = doc.char_span(start, end, alignment_mode='expand')
 
             # check to make sure we're not overlapping with an existing span
-            existing_spans = find_containing_spans(doc, start, end, include_article_elements=True)
+            existing_spans = find_containing_spans(doc, new_span.start_char, new_span.end_char, include_article_elements=True)
 
-            if len(existing_spans) == 0:
-                new_span = doc.char_span(start, end, alignment_mode='expand')
+            if len(existing_spans) > 0:
+                new_span = None
 
         new_span._.replacement_text = new_text
     else:
