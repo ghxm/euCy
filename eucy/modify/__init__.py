@@ -1,10 +1,8 @@
-import re
-import warnings
-
 import spacy
 from spacy.tokens import Doc, Span, SpanGroup
 
 from eucy.utils import set_extensions, determine_span_group_order
+from eucy.modify.article_elements import process_article_elements_modifications, any_modified_article_elements
 
 
 def add_element(doc, new_text, element_type=None, position='end', article=None, paragraph = None, subparagraph = None, indent = None, point = None, add_ws=True):
@@ -178,7 +176,7 @@ def modify_doc(doc,
     Span.set_extension("new_start_char", default=None, force=True)
     Span.set_extension("new_end_char", default=None, force=True)
     Span.set_extension("replacement_span", method=new_doc_span, force=True)
-    Span.set_extension("added", method=new_doc_span, force=True)
+    Span.set_extension("added", default=False)
 
     # get all non-overlapping spangroups
     non_overlap_span_groups = determine_span_group_order(doc)
@@ -257,15 +255,21 @@ def modify_doc(doc,
 
                 continue
 
-            # get replacement text
-            replacement_text = span._.replacement_text if span.has_extension(
-                'replacement_text'
-            ) and span._.replacement_text is not None else span.text_with_ws
-
+            # Replacement
             new_text += old_text[old_text_char_i:span.start_char]
-
             # set new text char index
             span._.new_start_char = len(new_text)
+
+            ## if we're dealing with articles, we also need to check article elements for paragraph-level changes
+            ## ideally, an article would either have replacement text or changed article elements, but not both
+            if k == 'articles' and doc.has_extension('article_elements') and any_modified_article_elements(doc._.article_elements[span_i]):
+                replacement_text = process_article_elements_modifications(doc._.article_elements[span_i], article_text = span.text_with_ws, new_char_offset = len(new_text), old_char_offset = span.start_char)
+            else:
+                # Replacement
+                # get replacement text
+                replacement_text = span._.replacement_text if span.has_extension(
+                    'replacement_text'
+                ) and span._.replacement_text is not None else span.text_with_ws
 
             # add replacement text to new text
             new_text += replacement_text

@@ -4,6 +4,93 @@
 
 import random
 from eucy import modify
+from eucy import utils
+import spacy
+
+
+def get_article_text():
+    return """
+
+Article 1
+
+For the 1995/96 marketing year, the aid provided for in Article 4 of Regulation (EEC)  No 1308/70 shall be:
+
+a)  as regards flax: ECU 935,65/ha;
+
+b)  as regards hemp: ECU 774,79/ha.,
+
+"""
+
+def get_article():
+
+    article = spacy.blank("en")(get_article_text())
+
+    utils.set_extensions(article)
+
+    return article
+
+
+def get_article_elements(article):
+
+    # create article element spans
+    article_elements = {
+        'pars': [article.char_span(13, 194)],
+        'subpars': [[article.char_span(13, 194)]],
+        'points': [[[article.char_span(122, 159), article.char_span(159, 194)]]],
+        'indents': [[[]]]
+    }
+
+    return article_elements
+
+def clear_article_element_spans(article_elements):
+
+    for p_i, p in enumerate(article_elements['pars']):
+        p._.delete()
+        for s_i, s in enumerate(article_elements['subpars'][p_i]):
+            s._.delete()
+            for i_i, i in enumerate(article_elements['indents'][p_i][s_i]):
+                i._.delete()
+            for p_i, p in enumerate(article_elements['points'][p_i][s_i]):
+                p._.delete()
+
+def test_article_element_modification():
+
+    article_text = get_article_text()
+
+    article = get_article()
+
+    modified_text = modify.article_elements.process_article_elements_modifications(get_article_elements(article), article_text, old_char_offset=0, new_char_offset=100)
+
+    assert modified_text == article_text
+
+    # DELETION
+
+    # test deletion of paragraph
+    article = get_article()
+    article_elements = get_article_elements(article)
+    article_elements['pars'][0]._.delete()
+    modified_text = modify.article_elements.process_article_elements_modifications(article_elements, article_text, old_char_offset=0, new_char_offset=100)
+    assert modified_text == article_text[:13] + article_text[194:]
+
+    # test deletion of subparagraph
+    article = get_article()
+    article_elements = get_article_elements(article)
+    article_elements['subpars'][0][0]._.delete()
+    modified_text = modify.article_elements.process_article_elements_modifications(article_elements, article_text, old_char_offset=0, new_char_offset=100)
+    assert modified_text == article_text[:13] + article_text[194:]
+
+    # test deletion of point
+    article = get_article()
+    article_elements = get_article_elements(article)
+    article_elements['points'][0][0][0]._.delete()
+    modified_text = modify.article_elements.process_article_elements_modifications(article_elements, article_text, old_char_offset=0, new_char_offset=100)
+    assert modified_text == article_text[:122] + article_text[159:]
+
+
+    # REPLACEMENT
+    # TODO
+
+
 
 
 def test_modify_doc(eudoc, eu_wrapper, nlp):
