@@ -107,15 +107,15 @@ def _delete_text(doc, warn_empty_group=True, keep_ws=True):
                 if doc in list(spangroup):
                     break
 
-            # if the span group is empty, print a warning
-            if len([
-                    s for s in spangroup
-                    if s.has_extension('deleted') and not s._.deleted
-            ]) == 0:
+                # if the span group is empty, print a warning
+                if len([
+                        s for s in spangroup
+                        if s.has_extension('deleted') and not s._.deleted
+                ]) == 0:
 
-                warnings.warn(
-                    f'Span group "{ spangroup.name }" will be empty after deletion of element'
-                )
+                    warnings.warn(
+                        f'Span group "{ spangroup.name }" will be empty after deletion of element'
+                    )
 
 
 
@@ -496,6 +496,14 @@ _extensions = {
         },
         {
             'name': 'char_pos',
+            'default': None
+        },
+        {
+            'name': 'new_start_char',
+            'default': None
+        },
+        {
+            'name': 'new_end_char',
             'default': None
         }
     ]
@@ -1318,3 +1326,12 @@ def determine_span_group_order(doc):
     return sg_labels
 
 
+def is_modified_span(span):
+    """Checks if the given span has been modified"""
+
+    assert isinstance(span, Span), "span must be a Span object"
+
+    return (span.has_extension('deleted') and span._.deleted) or (span.has_extension('new_element') and span._.new_element) or (span.has_extension('replacement_text') and span._.replacement_text is not None)
+
+def any_modified_spans(span_list):
+    return any([is_modified_span(span) for span in span_list])
