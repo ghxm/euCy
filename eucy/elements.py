@@ -349,6 +349,236 @@ def articles(doc_articles):
     return article_list
 
 
+def paragraphs(article):
+
+    par_char_token = utils.chars_to_tokens_dict(article,
+                                                input="as_ref",
+                                                output="as_ref")
+
+    par_start_matches = []
+
+    par_start_matches = [
+        m for m in re.finditer(eure.elements['article_num_paragraph'],
+                               article.text,
+                               flags=re.MULTILINE)
+    ]
+
+    unnum_pars = False
+
+    if len(par_start_matches) == 0:
+        par_start_matches = [
+            ma
+            for ma in re.finditer(eure.elements['article_unnum_paragraph'],
+                                  article.text,
+                                  flags=re.MULTILINE | re.DOTALL)
+        ]
+        unnum_pars = True
+
+    par_list = []
+
+    for i, m in enumerate(par_start_matches, start=0):
+
+        # match text of entire article
+        if unnum_pars and len(m.groups()) > 0:
+            par_start = m.start(1)
+        else:
+            par_start = m.start()
+
+        if i < len(par_start_matches) - 1:
+            if unnum_pars and len(m.groups()) > 0:
+                par_end = par_start_matches[i + 1].start(1)
+            else:
+                par_end = par_start_matches[i + 1].start()
+        else:
+            par_end = len(article.text)
+
+        if isinstance(article, Doc):
+            par_span = article.char_span(par_start,
+                                         par_end,
+                                         alignment_mode="expand")
+        else:
+            par_span = article[utils.char_to_token(
+                par_start, par_char_token):utils.char_to_token(
+                    par_end, par_char_token, alignment_mode="expand")]
+
+        # set extensions
+        if par_span.has_extension("element_pos"):
+            par_span._.element_pos = i + 1
+        if par_span.has_extension("element_numstr"):
+            if len(m.groups()) > 0:
+                par_span._.element_numstr = m.group(1)
+
+        par_list.append(par_span)
+
+    if Span.has_extension("element_type"):
+        for i, a in enumerate(par_list):
+            par_list[i]._.element_type = "art_par"
+
+    # if no paragraphs found, set article as par
+    if len(par_list) == 0 and len(article.text.strip()) > 1:
+        par_list.append(article)
+        if Span.has_extension("element_type"):
+            for i, a in enumerate(par_list):
+                par_list[i]._.element_type = "art_par"
+    return par_list
+
+def subparagraphs(par):
+    """find and return all subpar spans (always unnumbered). Each par has at least one subpar."""
+
+    subpar_char_token = utils.chars_to_tokens_dict(par,
+                                                   input="as_ref",
+                                                   output="as_ref")
+
+    subpar_start_matches = []
+
+    # mtch each par so that each par has at least one subpar
+    subpar_start_matches = [
+        m for m in re.finditer(eure.elements['article_subpar_start'],
+                               par.text,
+                               flags=re.MULTILINE)
+    ]
+
+    subpar_list = []
+
+    for i, m in enumerate(subpar_start_matches, start=0):
+
+        # match text of entire par
+        subpar_start = m.start()
+
+        if i < len(subpar_start_matches) - 1:
+            subpar_end = subpar_start_matches[i + 1].start()
+        else:
+            subpar_end = len(par.text)
+
+        if isinstance(par, Doc):
+            subpar_span = par.char_span(subpar_start,
+                                        subpar_end,
+                                        alignment_mode="expand")
+        else:
+            subpar_span = par[utils.char_to_token(
+                subpar_start, subpar_char_token):utils.char_to_token(
+                    subpar_end, subpar_char_token, alignment_mode="expand"
+                )]
+
+        # sort out chpater/section titles
+        if len(subpar_span.text.strip()) < 200 and bool(
+                re.search(eure.elements['article_section_titles'],
+                          subpar_span.text,
+                          flags=re.IGNORECASE | re.MULTILINE)):
+            continue
+
+        # set extensions
+        if subpar_span.has_extension("element_pos"):
+            subpar_span._.element_pos = i + 1
+
+        subpar_list.append(subpar_span)
+
+    if Span.has_extension("element_type"):
+        for i, a in enumerate(subpar_list):
+            subpar_list[i]._.element_type = "art_subpar"
+
+    return subpar_list
+
+def points(subpar):
+
+    point_char_token = utils.chars_to_tokens_dict(subpar,
+                                                  input="as_ref",
+                                                  output="as_ref")
+
+    point_start_matches = []
+
+    # mtch each subpar so that each subpar has at least one point
+    point_start_matches = [
+        m for m in re.finditer(eure.elements['article_point_id'],
+                               subpar.text,
+                               flags=re.MULTILINE)
+    ]
+
+    point_list = []
+
+    for i, m in enumerate(point_start_matches, start=0):
+
+        # match text of entire subpar
+        point_start = m.start()
+
+        if i < len(point_start_matches) - 1:
+            point_end = point_start_matches[i + 1].start()
+        else:
+            point_end = len(subpar.text)
+
+        if isinstance(subpar, Doc):
+            point_span = subpar.char_span(point_start,
+                                          point_end,
+                                          alignment_mode="expand")
+        else:
+            point_span = subpar[utils.char_to_token(
+                point_start, point_char_token):utils.char_to_token(
+                    point_end, point_char_token, alignment_mode="expand")]
+
+        # set extensions
+        if point_span.has_extension("element_pos"):
+            point_span._.element_pos = i + 1
+        if point_span.has_extension("element_numstr"):
+            point_span._.element_numstr = m.group(0)
+
+        point_list.append(point_span)
+
+    if Span.has_extension("element_type"):
+        for i, a in enumerate(point_list):
+            point_list[i]._.element_type = "art_point"
+
+    return point_list
+
+def indents(subpar):
+
+    indent_char_token = utils.chars_to_tokens_dict(subpar,
+                                                   input="as_ref",
+                                                   output="as_ref")
+
+    indent_start_matches = []
+
+    # mtch each subpar so that each subpar has at least one indent
+    indent_start_matches = [
+        m for m in re.finditer(eure.elements['article_indent_id'],
+                               subpar.text,
+                               flags=re.MULTILINE)
+    ]
+
+    indent_list = []
+
+    for i, m in enumerate(indent_start_matches, start=0):
+
+        # match text of entire subpar
+        indent_start = m.start()
+
+        if i < len(indent_start_matches) - 1:
+            indent_end = indent_start_matches[i + 1].start()
+        else:
+            indent_end = len(subpar.text)
+
+        if isinstance(subpar, Doc):
+            indent_span = subpar.char_span(indent_start,
+                                           indent_end,
+                                           alignment_mode="expand")
+        else:
+            indent_span = subpar[utils.char_to_token(
+                indent_start, indent_char_token
+            ):utils.char_to_token(
+                indent_end, indent_char_token, alignment_mode="expand")]
+
+        # set extensions
+        if indent_span.has_extension("element_pos"):
+            indent_span._.element_pos = i + 1
+
+        indent_list.append(indent_span)
+
+    if Span.has_extension("element_type"):
+        for i, a in enumerate(indent_list):
+            indent_list[i]._.element_type = "art_indent"
+
+    return indent_list
+
+
 def article_elements(doc_article):
     """Mark up an article, inlcuding Title, Paragraph, Point, etc...
     """
@@ -358,237 +588,9 @@ def article_elements(doc_article):
             str(type(doc_article)) +
             " type not supported. Please pass a Doc or Span object.")
 
-    def _paragraphs(article):
-
-        par_char_token = utils.chars_to_tokens_dict(article,
-                                                    input="as_ref",
-                                                    output="as_ref")
-
-        par_start_matches = []
-
-        par_start_matches = [
-            m for m in re.finditer(eure.elements['article_num_paragraph'],
-                                   article.text,
-                                   flags=re.MULTILINE)
-        ]
-
-        unnum_pars = False
-
-        if len(par_start_matches) == 0:
-            par_start_matches = [
-                ma
-                for ma in re.finditer(eure.elements['article_unnum_paragraph'],
-                                      article.text,
-                                      flags=re.MULTILINE | re.DOTALL)
-            ]
-            unnum_pars = True
-
-        par_list = []
-
-        for i, m in enumerate(par_start_matches, start=0):
-
-            # match text of entire article
-            if unnum_pars and len(m.groups()) > 0:
-                par_start = m.start(1)
-            else:
-                par_start = m.start()
-
-            if i < len(par_start_matches) - 1:
-                if unnum_pars and len(m.groups()) > 0:
-                    par_end = par_start_matches[i + 1].start(1)
-                else:
-                    par_end = par_start_matches[i + 1].start()
-            else:
-                par_end = len(article.text)
-
-            if isinstance(article, Doc):
-                par_span = article.char_span(par_start,
-                                             par_end,
-                                             alignment_mode="expand")
-            else:
-                par_span = article[utils.char_to_token(
-                    par_start, par_char_token):utils.char_to_token(
-                        par_end, par_char_token, alignment_mode="expand")]
-
-            # set extensions
-            if par_span.has_extension("element_pos"):
-                par_span._.element_pos = i + 1
-            if par_span.has_extension("element_numstr"):
-                if len(m.groups()) > 0:
-                    par_span._.element_numstr = m.group(1)
-
-            par_list.append(par_span)
-
-        if Span.has_extension("element_type"):
-            for i, a in enumerate(par_list):
-                par_list[i]._.element_type = "art_par"
-
-        # if no paragraphs found, set article as par
-        if len(par_list) == 0 and len(article.text.strip()) > 1:
-            par_list.append(article)
-            if Span.has_extension("element_type"):
-                for i, a in enumerate(par_list):
-                    par_list[i]._.element_type = "art_par"
-        return par_list
-
-    def _subparagraphs(par):
-        """find and return all subpar spans (always unnumbered). Each par has at least one subpar."""
-
-        subpar_char_token = utils.chars_to_tokens_dict(par,
-                                                       input="as_ref",
-                                                       output="as_ref")
-
-        subpar_start_matches = []
-
-        # mtch each par so that each par has at least one subpar
-        subpar_start_matches = [
-            m for m in re.finditer(eure.elements['article_subpar_start'],
-                                   par.text,
-                                   flags=re.MULTILINE)
-        ]
-
-        subpar_list = []
-
-        for i, m in enumerate(subpar_start_matches, start=0):
-
-            # match text of entire par
-            subpar_start = m.start()
-
-            if i < len(subpar_start_matches) - 1:
-                subpar_end = subpar_start_matches[i + 1].start()
-            else:
-                subpar_end = len(par.text)
-
-            if isinstance(par, Doc):
-                subpar_span = par.char_span(subpar_start,
-                                            subpar_end,
-                                            alignment_mode="expand")
-            else:
-                subpar_span = par[utils.char_to_token(
-                    subpar_start, subpar_char_token):utils.char_to_token(
-                        subpar_end, subpar_char_token, alignment_mode="expand"
-                    )]
-
-            # sort out chpater/section titles
-            if len(subpar_span.text.strip()) < 200 and bool(
-                    re.search(eure.elements['article_section_titles'],
-                              subpar_span.text,
-                              flags=re.IGNORECASE | re.MULTILINE)):
-                continue
-
-            # set extensions
-            if subpar_span.has_extension("element_pos"):
-                subpar_span._.element_pos = i + 1
-
-            subpar_list.append(subpar_span)
-
-        if Span.has_extension("element_type"):
-            for i, a in enumerate(subpar_list):
-                subpar_list[i]._.element_type = "art_subpar"
-
-        return subpar_list
-
-    def _points(subpar):
-
-        point_char_token = utils.chars_to_tokens_dict(subpar,
-                                                      input="as_ref",
-                                                      output="as_ref")
-
-        point_start_matches = []
-
-        # mtch each subpar so that each subpar has at least one point
-        point_start_matches = [
-            m for m in re.finditer(eure.elements['article_point_id'],
-                                   subpar.text,
-                                   flags=re.MULTILINE)
-        ]
-
-        point_list = []
-
-        for i, m in enumerate(point_start_matches, start=0):
-
-            # match text of entire subpar
-            point_start = m.start()
-
-            if i < len(point_start_matches) - 1:
-                point_end = point_start_matches[i + 1].start()
-            else:
-                point_end = len(subpar.text)
-
-            if isinstance(subpar, Doc):
-                point_span = subpar.char_span(point_start,
-                                              point_end,
-                                              alignment_mode="expand")
-            else:
-                point_span = subpar[utils.char_to_token(
-                    point_start, point_char_token):utils.char_to_token(
-                        point_end, point_char_token, alignment_mode="expand")]
-
-            # set extensions
-            if point_span.has_extension("element_pos"):
-                point_span._.element_pos = i + 1
-            if point_span.has_extension("element_numstr"):
-                point_span._.element_numstr = m.group(0)
-
-            point_list.append(point_span)
-
-        if Span.has_extension("element_type"):
-            for i, a in enumerate(point_list):
-                point_list[i]._.element_type = "art_point"
-
-        return point_list
-
-    def _indents(subpar):
-
-        indent_char_token = utils.chars_to_tokens_dict(subpar,
-                                                       input="as_ref",
-                                                       output="as_ref")
-
-        indent_start_matches = []
-
-        # mtch each subpar so that each subpar has at least one indent
-        indent_start_matches = [
-            m for m in re.finditer(eure.elements['article_indent_id'],
-                                   subpar.text,
-                                   flags=re.MULTILINE)
-        ]
-
-        indent_list = []
-
-        for i, m in enumerate(indent_start_matches, start=0):
-
-            # match text of entire subpar
-            indent_start = m.start()
-
-            if i < len(indent_start_matches) - 1:
-                indent_end = indent_start_matches[i + 1].start()
-            else:
-                indent_end = len(subpar.text)
-
-            if isinstance(subpar, Doc):
-                indent_span = subpar.char_span(indent_start,
-                                               indent_end,
-                                               alignment_mode="expand")
-            else:
-                indent_span = subpar[utils.char_to_token(
-                    indent_start, indent_char_token
-                ):utils.char_to_token(
-                    indent_end, indent_char_token, alignment_mode="expand")]
-
-            # set extensions
-            if indent_span.has_extension("element_pos"):
-                indent_span._.element_pos = i + 1
-
-            indent_list.append(indent_span)
-
-        if Span.has_extension("element_type"):
-            for i, a in enumerate(indent_list):
-                indent_list[i]._.element_type = "art_indent"
-
-        return indent_list
 
     # Paragraphs
-    par_spans = _paragraphs(doc_article)
+    par_spans = paragraphs(doc_article)
 
     par_subpar_spans = []
 
@@ -597,7 +599,7 @@ def article_elements(doc_article):
 
     for par in par_spans:
         # subparagraphs
-        subpar_spans = _subparagraphs(par)
+        subpar_spans = subparagraphs(par)
 
         par_subpar_spans.append(subpar_spans)
 
@@ -606,8 +608,8 @@ def article_elements(doc_article):
 
         for subpar in subpar_spans:
             # points
-            subpar_point_spans.append(_points(subpar))
-            subpar_indent_spans.append(_indents(subpar))
+            subpar_point_spans.append(points(subpar))
+            subpar_indent_spans.append(indents(subpar))
 
         par_subpar_point_spans.append(subpar_point_spans)
         par_subpar_indent_spans.append(subpar_indent_spans)
