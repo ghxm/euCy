@@ -21,7 +21,7 @@ b)  as regards hemp: ECU 774,79/ha.,
 
 """
 
-def get_article():
+def get_test_article():
 
     article = spacy.blank("en")(get_article_text())
 
@@ -30,7 +30,7 @@ def get_article():
     return article
 
 
-def get_article_elements(article):
+def get_test_article_elements(article):
 
     # create article element spans
     article_elements = {
@@ -57,34 +57,37 @@ def test_article_element_modification():
 
     article_text = get_article_text()
 
-    article = get_article()
+    article = get_test_article()
 
-    modified_text = modify.article_elements.process_article_elements_modifications(get_article_elements(article), article_text, old_char_offset=0, new_char_offset=100)
+    modified_text, modified_article_elements = modify.article_elements.process_article_elements_modifications(get_test_article_elements(article), article_text, old_char_offset=0, new_char_offset=100)
 
     assert modified_text == article_text
 
     # DELETION
 
     # test deletion of paragraph
-    article = get_article()
-    article_elements = get_article_elements(article)
+    article = get_test_article()
+    article_elements = get_test_article_elements(article)
     article_elements['pars'][0]._.delete()
-    modified_text = modify.article_elements.process_article_elements_modifications(article_elements, article_text, old_char_offset=0, new_char_offset=100)
+    modified_text, modified_article_elements = modify.article_elements.process_article_elements_modifications(article_elements, article_text, old_char_offset=0, new_char_offset=100)
     assert modified_text == article_text[:13] + article_text[194:]
+    assert 0 == len(modified_article_elements['pars'])
 
     # test deletion of subparagraph
-    article = get_article()
-    article_elements = get_article_elements(article)
+    article = get_test_article()
+    article_elements = get_test_article_elements(article)
     article_elements['subpars'][0][0]._.delete()
-    modified_text = modify.article_elements.process_article_elements_modifications(article_elements, article_text, old_char_offset=0, new_char_offset=100)
+    modified_text, modified_article_elements = modify.article_elements.process_article_elements_modifications(article_elements, article_text, old_char_offset=0, new_char_offset=100)
     assert modified_text == article_text[:13] + article_text[194:]
+    assert 0 == len(modified_article_elements['subpars'][0])
 
     # test deletion of point
-    article = get_article()
-    article_elements = get_article_elements(article)
+    article = get_test_article()
+    article_elements = get_test_article_elements(article)
     article_elements['points'][0][0][0]._.delete()
-    modified_text = modify.article_elements.process_article_elements_modifications(article_elements, article_text, old_char_offset=0, new_char_offset=100)
+    modified_text, modified_article_elements = modify.article_elements.process_article_elements_modifications(article_elements, article_text, old_char_offset=0, new_char_offset=100)
     assert modified_text == article_text[:122] + article_text[159:]
+    assert 1 == len(modified_article_elements['points'][0][0])
 
 
     # REPLACEMENT

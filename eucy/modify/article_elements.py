@@ -1,5 +1,7 @@
 from eucy.utils import is_modified_span, get_element_text, set_extensions
-from spacy.tokens import Span
+from eucy.elements import subparagraphs, points, indents
+from spacy.tokens import Span, Doc
+from spacy import blank
 
 def any_modified_article_elements(article_elements):
     """
@@ -21,10 +23,68 @@ def any_modified_article_elements(article_elements):
 
     return False
 
+def get_paragraph_subelements (par, par_offset = 0):
+
+    """
+    Get the subpar, indent and point spans of a paragraph and return them as a dictionary.
+    The start and end character offsets (`par_offset`) of the spans are adjusted accordingly in the `new_start_chat`and `new_end_char` extensions
+    to allow for further processing and modifications.
+    """
+
+    par_doc = None
+
+    if isinstance(par, str):
+        par_text = par
+    elif isinstance(par, Span):
+        par_text = par.text
+    elif isinstance(par, Doc):
+        par_text = par.text
+        par_doc = par
+    else:
+        raise TypeError("par must be str, Span or Doc")
+
+    if not par_doc:
+        par_doc = blank("en")(par_text)
+
+    # subparagraphs
+    subpar_spans = subparagraphs(par_doc)
+
+    subpar_point_spans = []
+    subpar_indent_spans = []
+
+    for subpar in subpar_spans:
+        # points
+        subpar_point_spans.append(points(subpar))
+        subpar_indent_spans.append(indents(subpar))
+
+    # adjust paragraph offsets
+    if not Span.has_extension('new_start_char'):
+        Span.set_extension("new_start_char", default=None, force=True)
+    if not Span.has_extension('new_end_char'):
+        Span.set_extension("new_end_char", default=None, force=True)
+
+    for subpar in subpar_spans:
+        subpar._.new_start_char = subpar.start_char + par_offset
+        subpar._.new_end_char = subpar.end_char + par_offset
+    for subpar_point in subpar_point_spans:
+        for point in subpar_point:
+            point._.new_start_char = point.start_char + par_offset
+            point._.new_end_char = point.end_char + par_offset
+    for subpar_indent in subpar_indent_spans:
+        for indent in subpar_indent:
+            indent._.new_start_char = indent.start_char + par_offset
+            indent._.new_end_char = indent.end_char + par_offset
+
+    return {
+        'subpars': subpar_spans,
+        'points': subpar_point_spans,
+        'indents': subpar_indent_spans
+    }
+
 
 def process_article_elements_modifications(article_elements, article_text, old_char_offset, new_char_offset):
 
-    """Process modifications of article elements and return the replacement text
+    """Process modifications of article elements and return the replacement text and the new article elements.
 
     Parameters
     ----------
@@ -38,6 +98,13 @@ def process_article_elements_modifications(article_elements, article_text, old_c
         The new character offset.
 
     """
+
+    new_article_elements = {
+        'pars': [],
+        'subpars': [],
+        'points': [],
+        'indents': []
+    }
 
     # set added extension
     Span.set_extension("added", default=False, force=True)
@@ -140,10 +207,27 @@ def process_article_elements_modifications(article_elements, article_text, old_c
             ## update the article char index
             article_char_i += len(par.text)
 
+            ## re-do paragraph-level spans (subpars, indents, points)
+            new_article_elements['pars'].append(par)
+            par_article_elements = get_paragraph_subelements(get_element_text(par, replace_text=True), par_offset = par._.new_start_char)
+
+            ## update the new article elements
+            new_article_elements['subpars'].append(par_article_elements['subpars'])
+            new_article_elements['points'].append(par_article_elements['points'])
+            new_article_elements['indents'].append(par_article_elements['indents'])
+
+    # if there are no pars, add blank article element lists
+    if len(new_article_elements['pars']) == 0:
+        new_article_elements['subpars'] = [[]]
+        new_article_elements['points'] = [[[]]]
+        new_article_elements['indents'] = [[[[]]]]
+
+
     ## add the text after the par
     new_text += article_text[article_char_i:]
 
-    return new_text
+    return new_text, new_article_elements
+
 
 
 
