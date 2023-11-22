@@ -17,7 +17,7 @@ For the 1995/96 marketing year, the aid provided for in Article 4 of Regulation 
 
 a)  as regards flax: ECU 935,65/ha;
 
-b)  as regards hemp: ECU 774,79/ha.,
+b)  as regards hemp: ECU 774,79/ha.
 
 """
 
@@ -64,6 +64,9 @@ def test_article_element_modification():
     assert modified_text == article_text
 
     # DELETION
+def test_article_element_modification_deletion():
+
+    article_text = get_article_text()
 
     # test deletion of paragraph
     article = get_test_article()
@@ -89,9 +92,48 @@ def test_article_element_modification():
     assert modified_text == article_text[:122] + article_text[159:]
     assert 1 == len(modified_article_elements['points'][0][0])
 
+def test_article_element_modification_replacement():
+
+    article_text = get_article_text()
 
     # REPLACEMENT
-    # TODO
+    article = get_test_article()
+    article_elements = get_test_article_elements(article)
+    article_elements['pars'][0] = modify.replace_text(article_elements['pars'][0], 'This is a test.')
+    modified_text, modified_article_elements = modify.article_elements.process_article_elements_modifications(article_elements, article_text, old_char_offset=0, new_char_offset=100)
+    assert modified_text == article_text[:13] + 'This is a test.' + article_text[194:]
+    assert utils.get_element_text(modified_article_elements['pars'][0], replace_text=True) == 'This is a test.'
+    assert len(modified_article_elements['pars']) == 1 and \
+        len(modified_article_elements['subpars'][0]) == 1 and \
+        len(modified_article_elements['points'][0][0]) == 0 and \
+        len(modified_article_elements['indents'][0][0]) == 0
+
+
+def test_article_element_modification_addition():
+
+    article_text = get_article_text()
+
+    # ADDITION
+    article = get_test_article()
+    article_elements = get_test_article_elements(article)
+
+    # preapte article by adding article element sextension
+    utils.set_extensions(article)
+
+    article._.article_elements = [article_elements] # position of article 0
+
+    # add a paragraph
+    article._.add_article_element ('This is a test.', article=0, paragraph=0)
+
+    modified_text, modified_article_elements = modify.article_elements.process_article_elements_modifications(article._.article_elements[0], article_text, old_char_offset=0, new_char_offset=100)
+
+    if modified_text.endswith('\n\n'):
+        end_new_chars = '\n\n'
+    else:
+        end_new_chars = ''
+
+    assert modified_text == article_text[:13] + '\n\nThis is a test.\n\n' + article_text[13:].strip() + end_new_chars
+
 
 
 

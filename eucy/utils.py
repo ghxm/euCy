@@ -161,7 +161,7 @@ def _new_element_span(doc, new_text, add_ws = True):
         new_span = None
 
         # create a random span that is not equal to any existing span
-        while new_span is None or new_span._.replacement_text is not None:
+        while new_span is None or (new_span.has_extension('replacement_text') and new_span._.replacement_text is not None):
 
             # choose a random start and end char pos
             start = random.randint(0, len(doc.text)-1)
@@ -175,6 +175,7 @@ def _new_element_span(doc, new_text, add_ws = True):
             if len(existing_spans) > 0:
                 new_span = None
 
+        set_extensions(new_span)
         new_span._.replacement_text = new_text
     else:
         new_span = new_text
@@ -202,7 +203,7 @@ def _add_article_element(doc,
     """Setter for the add_element extension. Should not be used directly."""
 
     assert isinstance(article, int), "article must be an integer"
-    assert any([paragraph, subparagraph, indent, point]), "at least one of paragraph, subparagraph, indent or point must be specified"
+    assert any([paragraph is not None, subparagraph is not None, indent is not None, point is not None]), "at least one of paragraph, subparagraph, indent or point must be specified"
 
     article_elements = doc._.article_elements[article]
 
@@ -227,28 +228,28 @@ def _add_article_element(doc,
 
     if indent and not ((isinstance(indent, int) and indent in range(len(article_elements['indents'][paragraph][subparagraph]))) or indent in ['start', 'end']):
         if auto_position and isinstance(indent, int):
-            indent = auto_position(indent, len(article_elements['indents'][paragraph][subparagraph]), return_int=True)
+            indent = _auto_position(indent, len(article_elements['indents'][paragraph][subparagraph]), return_int=True)
         else:
             raise ValueError("indent must be an integer inside the range of the indent list")
     elif indent and indent in ['start', 'end']:
-        indent = auto_position(indent, len(article_elements['indents'][paragraph][subparagraph]), return_int=True)
+        indent = _auto_position(indent, len(article_elements['indents'][paragraph][subparagraph]), return_int=True)
 
     if point and not ((isinstance(point, int) and point in range(len(article_elements['points'][paragraph][subparagraph][indent]))) or point in ['start', 'end']):
         if auto_position and isinstance(point, int):
-            point = auto_position(point, len(article_elements['points'][paragraph][subparagraph]), return_int=True)
+            point = _auto_position(point, len(article_elements['points'][paragraph][subparagraph]), return_int=True)
         else:
             raise ValueError("point must be an integer inside the range of the point list")
     elif point and point in ['start', 'end']:
-        point = auto_position(point, len(article_elements['points'][paragraph][subparagraph]), return_int=True)
+        point = _auto_position(point, len(article_elements['points'][paragraph][subparagraph]), return_int=True)
 
     new_span = _new_element_span(doc, new_text, add_ws=True)
 
     # if no further information is given, we're in the first (sub)paragraph
-    if not paragraph:
-        paragraph = 1
+    if paragraph is None:
+        paragraph = 0
 
-    if not subparagraph:
-        subparagraph = 1
+    #if subparagraph is None:
+    #    subparagraph = 1
 
     # start processing from the most nested element
     article_element_type = None
@@ -260,19 +261,19 @@ def _add_article_element(doc,
 
     # TODO handle cases where point AND indent are specified?
     # determine char_pos of new element
-    if point:
+    if point is not None:
         position = point
         article_element_type = 'points'
         article_elements_spans = article_elements['points'][paragraph][subparagraph]
-    elif indent:
+    elif indent is not None:
         position = indent
         article_element_type = 'indents'
         article_elements_spans = article_elements['indents'][paragraph][subparagraph]
-    elif subparagraph:
+    elif subparagraph is not None:
         position = subparagraph
         article_element_type = 'subpars'
         article_elements_spans = article_elements['subpars'][paragraph]
-    elif paragraph:
+    elif paragraph is not None:
         position = paragraph
         article_element_type = 'pars'
         article_elements_spans = article_elements['pars']
@@ -464,6 +465,10 @@ _extensions = {
             'name': 'add_element',
             'method': _add_element
         },
+        {
+            'name': 'add_article_element',
+            'method': _add_article_element
+        }
     ],
     "Span": [
         {
@@ -1319,6 +1324,9 @@ def determine_span_group_order(doc):
     """Return the order of the span groups (citations, recitals, articles) in the given doc object"""
 
     sg_labels = ['citations', 'recitals', 'articles']
+
+    # if span group is empty, remove it from the list
+    sg_labels = [sg for sg in sg_labels if len(doc.spans[sg]) > 0]
 
     # order labels by span group start position
     sg_labels = sorted(sg_labels, key=lambda x: doc.spans[x][0].start)

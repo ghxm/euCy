@@ -1,5 +1,5 @@
-from eucy.utils import is_modified_span, get_element_text, set_extensions
-from eucy.elements import subparagraphs, points, indents
+from eucy.utils import is_modified_span, get_element_text, set_extensions, flatten
+from eucy.elements import paragraphs, subparagraphs, points, indents
 from spacy.tokens import Span, Doc
 from spacy import blank
 
@@ -8,22 +8,87 @@ def any_modified_article_elements(article_elements):
     Check if there are any modified article elements in the list of article elements.
     """
 
-    for p_i, p in enumerate(article_elements['pars']):
-        if is_modified_span(p):
-            return True
-        for s_i, s in enumerate(article_elements['subpars'][p_i]):
-            if is_modified_span(s):
-                return True
-            for i_i, i in enumerate(article_elements['indents'][p_i][s_i]):
-                if is_modified_span(i):
-                    return True
-            for p_i, p in enumerate(article_elements['points'][p_i][s_i]):
-                if is_modified_span(p):
-                    return True
+    spans = []
 
-    return False
+    spans.extend(flatten(article_elements['pars']))
+    spans.extend(flatten(article_elements['subpars']))
+    spans.extend(flatten(article_elements['points']))
+    spans.extend(flatten(article_elements['indents']))
 
-def get_paragraph_subelements (par, par_offset = 0):
+    return any([is_modified_span(span) for span in spans])
+
+
+def recalculate_article_elements (article, article_offset = 0):
+
+        """
+        Get the article elements for a given article text and return them as a dictionary.
+
+        Parameters
+        ----------
+        article : str or Span or Doc
+            The article text or span or doc.
+        article_offset : int, optional
+            The article offset in the document, by default 0.
+
+        Returns
+        -------
+        dict
+            The article elements as a dictionary.
+        """
+
+        article_doc = None
+
+        if isinstance(article, str):
+            article_text = article
+        elif isinstance(article, Span):
+            article_text = article.text
+        elif isinstance(article, Doc):
+            article_text = article.text
+            article_doc = article
+        else:
+            raise TypeError("par must be str, Span or Doc")
+
+        if not article_doc:
+            article_doc = blank("en")(article_text)
+
+        # identify paragraphs
+        pars = paragraphs(article_doc)
+
+        # adjust paragraph offsets
+        if not Span.has_extension('new_start_char'):
+            Span.set_extension("new_start_char", default=None, force=True)
+        if not Span.has_extension('new_end_char'):
+            Span.set_extension("new_end_char", default=None, force=True)
+
+        article_es = {
+            'pars': [],
+            'subpars': [],
+            'points': [],
+            'indents': []
+        }
+
+        for par in pars:
+            par._.new_start_char = par.start_char + article_offset
+            par._.new_end_char = par.end_char + article_offset
+            article_es['pars'].append(par)
+
+            # paragraph subelements
+            par_es = reclaculate_paragraph_subelements(par, par_offset = par._.new_start_char)
+
+            article_es['subpars'].append(par_es['subpars'])
+            article_es['points'].append(par_es['points'])
+            article_es['indents'].append(par_es['indents'])
+
+        # if there are no pars, add blank article element lists
+        if len(article_es['pars']) == 0:
+            article_es['subpars'] = [[]]
+            article_es['points'] = [[[]]]
+            article_es['indents'] = [[[[]]]]
+
+        return article_es
+
+
+def reclaculate_paragraph_subelements (par, par_offset = 0):
 
     """
     Get the subpar, indent and point spans of a paragraph and return them as a dictionary.
@@ -113,14 +178,11 @@ def process_article_elements_modifications(article_elements, article_text, old_c
 
     # get all spans into one big list
     spans = []
-    for p_i, p in enumerate(article_elements['pars']):
-        spans.append(p)
-        for s_i, s in enumerate(article_elements['subpars'][p_i]):
-            spans.append(s)
-            for i_i, i in enumerate(article_elements['indents'][p_i][s_i]):
-                spans.append(i)
-            for p_i, p in enumerate(article_elements['points'][p_i][s_i]):
-                spans.append(p)
+
+    spans.extend(flatten(article_elements['pars']))
+    spans.extend(flatten(article_elements['subpars']))
+    spans.extend(flatten(article_elements['points']))
+    spans.extend(flatten(article_elements['indents']))
 
     # sort spans by char_pos or start_char
     spans = sorted(spans, key=lambda x: x._.char_pos if (x.has_extension('char_pos') and x._.char_pos) else x.start_char)
@@ -152,8 +214,8 @@ def process_article_elements_modifications(article_elements, article_text, old_c
                         other_span._.replace_text(other_span.text.replace(span.text, ''), keep_ws=True, deletion_threshold = 2)
                     # span overlaps with other span
                     ## this should not happen as all article elements are non-partially-overlapping
-            # addition / replacement
-            elif span.has_extension('replacement_text') and span._.replacement_text and len(span._.replacement_text)>0:
+            # replacement
+            elif ((span.has_extension('new_element') and not span._.new_element) or not span.has_extension('new_element')) and span.has_extension('replacement_text') and span._.replacement_text and len(span._.replacement_text)>0:
                 # check if other spans overlap with this one
                 for other_span in spans:
                     # skip same span
@@ -168,14 +230,17 @@ def process_article_elements_modifications(article_elements, article_text, old_c
                     elif other_span.start_char <= span.start_char and other_span.end_char >= span.end_char:
                         # replace text in other span
                         other_span._.replace_text(other_span.text.replace(span.text, get_element_text(span, replace_text=True)), keep_ws=True, deletion_threshold = 2)
+            # addition
+            elif span.has_extension('new_element') and span._.new_element:
+                pass
 
     # build the new text from the processed paragraph spans and adding the text in between
     new_text = ""
 
     # add the text before the first span
     if len(spans) > 0:
-        new_text += article_text[:spans[0].start_char - old_char_offset]
-        article_char_i = spans[0].start_char - old_char_offset
+        new_text += article_text[:spans[0]._.char_pos - old_char_offset if spans[0].has_extension('char_pos') and spans[0]._.char_pos is not None else spans[0].start_char - old_char_offset]
+        article_char_i = spans[0]._.char_pos - old_char_offset if spans[0].has_extension('char_pos') and spans[0]._.char_pos is not None  else spans[0].start_char - old_char_offset
     else:
         new_text += article_text
         return new_text
@@ -193,7 +258,7 @@ def process_article_elements_modifications(article_elements, article_text, old_c
                 continue
             # addition / replacement
             ## add any text before the par
-            new_text += article_text[article_char_i:par.start_char - old_char_offset]
+            new_text += article_text[article_char_i:par._.char_pos - old_char_offset if par.has_extension('char_pos') and par._.char_pos is not None else par.start_char - old_char_offset]
 
             ## update the new par start char
             par._.new_start_char = new_char_offset + len(new_text)
@@ -209,7 +274,7 @@ def process_article_elements_modifications(article_elements, article_text, old_c
 
             ## re-do paragraph-level spans (subpars, indents, points)
             new_article_elements['pars'].append(par)
-            par_article_elements = get_paragraph_subelements(get_element_text(par, replace_text=True), par_offset = par._.new_start_char)
+            par_article_elements = reclaculate_paragraph_subelements(get_element_text(par, replace_text=True), par_offset = par._.new_start_char)
 
             ## update the new article elements
             new_article_elements['subpars'].append(par_article_elements['subpars'])

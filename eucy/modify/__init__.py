@@ -176,7 +176,8 @@ def modify_doc(doc,
     Span.set_extension("new_start_char", default=None, force=True)
     Span.set_extension("new_end_char", default=None, force=True)
     Span.set_extension("replacement_span", method=new_doc_span, force=True)
-    Span.set_extension("added", default=False)
+    if not Span.has_extension('added'):
+        Span.set_extension("added", default=False)
 
     # get all non-overlapping spangroups
     non_overlap_span_groups = determine_span_group_order(doc)
@@ -198,11 +199,13 @@ def modify_doc(doc,
                  if not s._.new_element] + [len(doc.text)]))
     }  # sort by start char of first span if not a new element (add len of doc so that there's no exception in case of empty group)
 
-    # TODO account for (changes) article_elements? -> otherwise elements might no be detected by e.g. elemount count as in current setup -> adjust eucywrapper to work with preconfiugred spans
 
+    old_new_article_elements = []
 
     # create new text
     for k, spangroup in old_spans.items():
+
+        element_i = 0 # keep track of existing elements (used for article elements)
 
         for span_i, span in enumerate(spangroup):
 
@@ -230,6 +233,10 @@ def modify_doc(doc,
 
                 if not span._.deleted:
                     span._.deleted = True
+
+
+                element_i += 1
+
                 continue
 
             # Addition
@@ -253,6 +260,11 @@ def modify_doc(doc,
 
                 span._.new_end_char = len(new_text)
 
+                if k == 'articles':
+                    # create article elements for new article
+                    old_new_article_elements.append()
+
+
                 continue
 
             # Replacement
@@ -262,14 +274,22 @@ def modify_doc(doc,
 
             ## if we're dealing with articles, we also need to check article elements for paragraph-level changes
             ## ideally, an article would either have replacement text or changed article elements, but not both
-            if k == 'articles' and doc.has_extension('article_elements') and any_modified_article_elements(doc._.article_elements[span_i]):
-                replacement_text = process_article_elements_modifications(doc._.article_elements[span_i], article_text = span.text_with_ws, new_char_offset = len(new_text), old_char_offset = span.start_char)
+            if k == 'articles' and doc.has_extension('article_elements') and any_modified_article_elements(doc._.article_elements[element_i]):
+                replacement_text, new_article_elements = process_article_elements_modifications(doc._.article_elements[element_i], article_text = span.text_with_ws, new_char_offset = len(new_text), old_char_offset = span.start_char)
+
+                # add new article elements
+                doc._.article_elements[element_i] = new_article_elements
+
             else:
+
                 # Replacement
                 # get replacement text
                 replacement_text = span._.replacement_text if span.has_extension(
                     'replacement_text'
                 ) and span._.replacement_text is not None else span.text_with_ws
+
+                # TODO adjust article elements spans (if replaced and if not replaced)
+
 
             # add replacement text to new text
             new_text += replacement_text
@@ -278,6 +298,8 @@ def modify_doc(doc,
 
             # update old text char index
             old_text_char_i = span.end_char
+
+            element_i += 1
 
     # add remaining text
     new_text += old_text[old_text_char_i:]
@@ -308,8 +330,11 @@ def modify_doc(doc,
                 new_doc.spans[sk].append(
                     old_new_span._.replacement_span(new_doc))
 
-    # recover _.parts
+    # TODO recover article elements
+    #  how to account for changed order / inserted articles -> have separate new_article_elements
+    #  + changed articles? -> recompute article elements from scratch?)
 
+    # recover _.parts
     if not doc.has_extension('parts'):
         Doc.set_extension('parts', default=None, force=True)
 
