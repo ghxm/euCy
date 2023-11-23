@@ -1,8 +1,8 @@
 import spacy
 from spacy.tokens import Doc, Span, SpanGroup
 
-from eucy.utils import set_extensions, determine_span_group_order
-from eucy.modify.article_elements import process_article_elements_modifications, any_modified_article_elements
+from eucy.utils import set_extensions, determine_span_group_order, get_element_text, is_modified_span
+from eucy.modify.article_elements import process_article_elements_modifications, any_modified_article_elements, recalculate_article_elements, adjust_article_element_offsets
 
 
 def add_element(doc, new_text, element_type=None, position='end', article=None, paragraph = None, subparagraph = None, indent = None, point = None, add_ws=True):
@@ -252,6 +252,10 @@ def modify_doc(doc,
 
                 span._.new_start_char = len(new_text)
 
+                if k == 'articles':
+                    # create article elements for new article
+                    old_new_article_elements.append(recalculate_article_elements(get_element_text(span, replace_text=True), article_offset=len(new_text)))
+
                 # check for replacement text (keep_ws = True in delete())
                 if span.has_extension(
                         'replacement_text'
@@ -260,11 +264,6 @@ def modify_doc(doc,
 
                 span._.new_end_char = len(new_text)
 
-                if k == 'articles':
-                    # create article elements for new article
-                    old_new_article_elements.append()
-
-
                 continue
 
             # Replacement
@@ -272,24 +271,33 @@ def modify_doc(doc,
             # set new text char index
             span._.new_start_char = len(new_text)
 
-            ## if we're dealing with articles, we also need to check article elements for paragraph-level changes
-            ## ideally, an article would either have replacement text or changed article elements, but not both
-            if k == 'articles' and doc.has_extension('article_elements') and any_modified_article_elements(doc._.article_elements[element_i]):
-                replacement_text, new_article_elements = process_article_elements_modifications(doc._.article_elements[element_i], article_text = span.text_with_ws, new_char_offset = len(new_text), old_char_offset = span.start_char)
+            if k == 'articles':
+                ## if we're dealing with articles, we also need to check article elements for paragraph-level changes
+                ## ideally, an article would either have replacement text or changed article elements, but not both
+                new_article_elements = None
 
-                # add new article elements
-                doc._.article_elements[element_i] = new_article_elements
+                if k == 'articles' and doc.has_extension('article_elements') and any_modified_article_elements(doc._.article_elements[element_i]):
+                    replacement_text, new_article_elements = process_article_elements_modifications(doc._.article_elements[element_i], article_text = span.text_with_ws, new_char_offset = len(new_text), old_char_offset = span.start_char)
+                else:
+                    # Replacement
+                    # get replacement text
+                    replacement_text = span._.replacement_text if span.has_extension(
+                        'replacement_text'
+                    ) and span._.replacement_text is not None else span.text_with_ws
+                if new_article_elements is not None:
+                    # adjust article elements spans (if replaced and if no mod)
+                    if is_modified_span(span):
+                        new_article_elements = recalculate_article_elements(get_element_text(span, replace_text=True), article_offset=len(new_text))
+                    else:
+                        new_article_elements = adjust_article_element_offsets(span._.article_elements, old_offset=span.start_char, new_offset=len(new_text))
 
+                old_new_article_elements.append(new_article_elements)
             else:
-
                 # Replacement
                 # get replacement text
                 replacement_text = span._.replacement_text if span.has_extension(
                     'replacement_text'
                 ) and span._.replacement_text is not None else span.text_with_ws
-
-                # TODO adjust article elements spans (if replaced and if not replaced)
-
 
             # add replacement text to new text
             new_text += replacement_text
@@ -300,6 +308,9 @@ def modify_doc(doc,
             old_text_char_i = span.end_char
 
             element_i += 1
+
+            # TODO adjust article elements spans (if untouched or if replaced or if ae level change)
+            #  make sure we add them only once
 
     # add remaining text
     new_text += old_text[old_text_char_i:]

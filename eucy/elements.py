@@ -5,6 +5,7 @@ from spacy.tokens.span import Span
 
 from eucy import regex as eure
 from eucy import structure, utils
+from eucy.utils import set_element_extensions
 
 
 class Elements:
@@ -401,6 +402,8 @@ def paragraphs(article):
                 par_start, par_char_token):utils.char_to_token(
                     par_end, par_char_token, alignment_mode="expand")]
 
+        set_element_extensions(par_span)
+
         # set extensions
         if par_span.has_extension("element_pos"):
             par_span._.element_pos = i + 1
@@ -416,6 +419,11 @@ def paragraphs(article):
 
     # if no paragraphs found, set article as par
     if len(par_list) == 0 and len(article.text.strip()) > 1:
+        if isinstance(article, Doc):
+            article = article.char_span(0,
+                                        len(article.text),
+                                        alignment_mode="expand")
+        set_element_extensions(article)
         par_list.append(article)
         if Span.has_extension("element_type"):
             for i, a in enumerate(par_list):
@@ -466,6 +474,8 @@ def subparagraphs(par):
                           subpar_span.text,
                           flags=re.IGNORECASE | re.MULTILINE)):
             continue
+
+        set_element_extensions(subpar_span)
 
         # set extensions
         if subpar_span.has_extension("element_pos"):
@@ -521,7 +531,10 @@ def points(subpar):
         if point_span.has_extension("element_numstr"):
             point_span._.element_numstr = m.group(0)
 
+        set_element_extensions(point_span)
+
         point_list.append(point_span)
+
 
     if Span.has_extension("element_type"):
         for i, a in enumerate(point_list):
@@ -569,6 +582,8 @@ def indents(subpar):
         # set extensions
         if indent_span.has_extension("element_pos"):
             indent_span._.element_pos = i + 1
+
+        set_element_extensions(indent_span)
 
         indent_list.append(indent_span)
 

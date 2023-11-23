@@ -3,9 +3,11 @@ from eucy.elements import paragraphs, subparagraphs, points, indents
 from spacy.tokens import Span, Doc
 from spacy import blank
 
-def any_modified_article_elements(article_elements):
+
+
+def get_article_element_spans(article_elements):
     """
-    Check if there are any modified article elements in the list of article elements.
+    Get all spans from the article elements.
     """
 
     spans = []
@@ -14,6 +16,26 @@ def any_modified_article_elements(article_elements):
     spans.extend(flatten(article_elements['subpars']))
     spans.extend(flatten(article_elements['points']))
     spans.extend(flatten(article_elements['indents']))
+
+    return spans
+
+
+def adjust_article_element_offsets(article_elements, old_offset, new_offset):
+
+    spans = get_article_element_spans(article_elements)
+
+    for span in spans:
+        span._.new_start_char = span.start_char + new_offset - old_offset
+        span._.new_end_char = span.end_char + new_offset - old_offset
+
+    return article_elements
+
+def any_modified_article_elements(article_elements):
+    """
+    Check if there are any modified article elements in the list of article elements.
+    """
+
+    spans = get_article_element_spans(article_elements)
 
     return any([is_modified_span(span) for span in spans])
 
@@ -164,6 +186,17 @@ def process_article_elements_modifications(article_elements, article_text, old_c
 
     """
 
+    def update_all_char_pos(pos, change):
+        """
+        Update the char_pos of all article elements that come after.
+        """
+
+        for span in spans:
+            if span.has_extension('char_pos') and span._.char_pos is not None and span._.char_pos >= pos:
+                span._.char_pos += change
+
+
+
     new_article_elements = {
         'pars': [],
         'subpars': [],
@@ -204,14 +237,29 @@ def process_article_elements_modifications(article_elements, article_text, old_c
                     # skip same span
                     if other_span == span:
                         continue
+                    elif other_span.has_extension('new_element') and other_span._.new_element:
+                        # skip other span if it is a new element
+                        continue
+                    elif other_span.has_extension('added') and other_span._.added:
+                        # skip other span if it has been deleted by another span
+                        continue
                     # other span fully contained in span
-                    if other_span.start_char <= span.start_char and other_span.end_char <= span.end_char:
+                    if other_span.start_char >= span.start_char and other_span.end_char <= span.end_char:
                         # delete other span and mark as processed
                         other_span._.deleted = True
                         other_span._.added = True
+
+                        update_all_char_pos(other_span.start_char, -len(other_span.text))
+
                     # span fully contained in other span
                     elif other_span.start_char <= span.start_char and other_span.end_char >= span.end_char:
                         other_span._.replace_text(other_span.text.replace(span.text, ''), keep_ws=True, deletion_threshold = 2)
+                        if other_span._.deleted:
+                            other_span._.added = True
+                            update_all_char_pos(other_span.start_char, -len(other_span.text))
+                        else:
+                            update_all_char_pos(other_span.start_char, -len(span.text))
+
                     # span overlaps with other span
                     ## this should not happen as all article elements are non-partially-overlapping
             # replacement
@@ -221,18 +269,47 @@ def process_article_elements_modifications(article_elements, article_text, old_c
                     # skip same span
                     if other_span == span:
                         continue
+                    elif other_span.has_extension('new_element') and other_span._.new_element:
+                        # skip other span if it is a new element
+                        continue
+                    elif other_span.has_extension('added') and other_span._.added:
+                        # skip other span if it has been deleted by another span
+                        continue
+                    elif other_span.has_extension('deleted') and other_span._.deleted:
+                        # skip other span if it is to be deleted
+                        continue
                     # other span fully contained in span
-                    if other_span.start_char <= span.start_char and other_span.end_char <= span.end_char:
+                    if other_span.start_char >= span.start_char and other_span.end_char <= span.end_char:
                         new_other_span_text = get_element_text(span, replace_text=True)[other_span.start_char - span.start_char:other_span.end_char - span.start_char]
                         # replace text within the span margins in other span
                         other_span._.replace_text(new_other_span_text, keep_ws=True, deletion_threshold = 2)
+                        if other_span._.deleted:
+                            other_span._.added = True
+                            update_all_char_pos(other_span.start_char, -len(other_span.text))
+                        else:
+                            # TODO does this work if the same span is replaced multiple times?
+                            update_all_char_pos(other_span.start_char, -len(get_element_text(span, replace_text=True)) + len(new_other_span_text))
                     # span fully contained in other span
                     elif other_span.start_char <= span.start_char and other_span.end_char >= span.end_char:
                         # replace text in other span
                         other_span._.replace_text(other_span.text.replace(span.text, get_element_text(span, replace_text=True)), keep_ws=True, deletion_threshold = 2)
+                        if other_span._.deleted:
+                            other_span._.added = True
+                            update_all_char_pos(other_span.start_char, -len(other_span.text))
+                        else:
+                            update_all_char_pos(span.start_char, len(get_element_text(span, replace_text=True)) - len(span.text))
             # addition
             elif span.has_extension('new_element') and span._.new_element:
-                pass
+                # check if the element type is below the paragraph level
+                if span._.element_type in ['art_subpar', 'art_point', 'art_indent']:
+                    # find the paragraph span that the char_pos is contained in / adjacent to
+                    for par in article_elements['pars']:
+                        if span._.char_pos >= par.start_char and span._.char_pos <= par.end_char:
+                            new_par_text = get_element_text(par, replace_text=True)[:span._.char_pos - par.start_char] + get_element_text(span, replace_text=True) + get_element_text(par, replace_text=True)[span._.char_pos - par.start_char:]
+                            par._.replace_text(new_par_text, keep_ws=True, deletion_threshold = 2)
+
+
+
 
     # build the new text from the processed paragraph spans and adding the text in between
     new_text = ""
@@ -243,10 +320,10 @@ def process_article_elements_modifications(article_elements, article_text, old_c
         article_char_i = spans[0]._.char_pos - old_char_offset if spans[0].has_extension('char_pos') and spans[0]._.char_pos is not None  else spans[0].start_char - old_char_offset
     else:
         new_text += article_text
-        return new_text
+        return new_text, adjust_article_element_offsets(article_elements, old_char_offset, new_char_offset)
 
     for par in article_elements['pars']:
-        if par.has_extension('added') and par._.added:
+        if par.has_extension('added') and par._.added and (not par.has_extension('new_element') or (par.has_extension('new_element') and not par._.new_element)):
             article_char_i += len(par.text)
             # skip this par
             continue

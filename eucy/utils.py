@@ -8,7 +8,7 @@ from collections import OrderedDict
 from functools import wraps
 
 from bs4 import BeautifulSoup
-from spacy.tokens import Doc, SpanGroup
+from spacy.tokens import Doc, SpanGroup, Span
 from spacy.tokens.span import Span
 
 import eucy
@@ -234,7 +234,7 @@ def _add_article_element(doc,
     elif indent and indent in ['start', 'end']:
         indent = _auto_position(indent, len(article_elements['indents'][paragraph][subparagraph]), return_int=True)
 
-    if point and not ((isinstance(point, int) and point in range(len(article_elements['points'][paragraph][subparagraph][indent]))) or point in ['start', 'end']):
+    if point and not ((isinstance(point, int) and point in range(len(article_elements['points'][paragraph][subparagraph]))) or point in ['start', 'end']):
         if auto_position and isinstance(point, int):
             point = _auto_position(point, len(article_elements['points'][paragraph][subparagraph]), return_int=True)
         else:
@@ -242,7 +242,8 @@ def _add_article_element(doc,
     elif point and point in ['start', 'end']:
         point = _auto_position(point, len(article_elements['points'][paragraph][subparagraph]), return_int=True)
 
-    new_span = _new_element_span(doc, new_text, add_ws=True)
+    new_span = _new_element_span(doc, new_text, add_ws=add_ws)
+    set_element_extensions(new_span)
 
     # if no further information is given, we're in the first (sub)paragraph
     if paragraph is None:
@@ -278,17 +279,19 @@ def _add_article_element(doc,
         article_element_type = 'pars'
         article_elements_spans = article_elements['pars']
 
-    if article_element_type in ['indents', 'points'] and  len(spans_without_new_elements(article_element_type)) == 0:
+    if article_element_type in ['indents', 'points'] and  len(spans_without_new_elements(article_elements_spans)) == 0:
             # case where no pre-existing elements of the same type exist
             ## use subparagraph end char pos
             new_span._.char_pos = spans_without_new_elements(article_elements['subpars'][article])[subparagraph-1].end_char
     else:
         if position in range(len(spans_without_new_elements(article_elements_spans))):
             ## insert at position
-            new_span._.char_pos = spans_without_new_elements(article_elements_spans)[position - 1].start_char
+            new_span._.char_pos = spans_without_new_elements(article_elements_spans)[position].start_char
         else:
             ## insert at end
             new_span._.char_pos = spans_without_new_elements(article_elements_spans)[-1].end_char
+
+    new_span._.element_type = 'art_' + article_element_type[:-1]
 
     # insert into span group at position in a bit of a hacky way
     new_article_elements_spans = [
@@ -1343,3 +1346,22 @@ def is_modified_span(span):
 
 def any_modified_spans(span_list):
     return any([is_modified_span(span) for span in span_list])
+
+
+def set_element_extensions(span):
+    """Set element extensions for a span
+    """
+
+    assert isinstance(span, Span), "span must be a spacy Span object"
+
+    if not span.has_extension("element_type"):
+        span.set_extension("element_type", default=None)
+
+    if not span.has_extension("element_pos"):
+        span.set_extension("element_pos", default=None)
+
+    if not span.has_extension("element_num"):
+        span.set_extension("element_num", default=None)
+
+    if not span.has_extension("element_numstr"):
+        span.set_extension("element_numstr", default=None)
