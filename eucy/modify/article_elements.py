@@ -220,8 +220,11 @@ def process_article_elements_modifications(article_elements, article_text, old_c
     # sort spans by char_pos or start_char
     spans = sorted(spans, key=lambda x: x._.char_pos if (x.has_extension('char_pos') and x._.char_pos) else x.start_char)
 
+
     # loop over and process spans
     for span in spans:
+        char_pos_adjusted_for_span = False # male sure we only adjust once for each span
+
         # mainly for testin but just to make sure
         set_extensions(span)
 
@@ -249,17 +252,22 @@ def process_article_elements_modifications(article_elements, article_text, old_c
                         other_span._.deleted = True
                         other_span._.added = True
 
-                        update_all_char_pos(other_span.start_char, -len(other_span.text))
+                        if not char_pos_adjusted_for_span:
+                            update_all_char_pos(other_span.start_char, -len(other_span.text))
+                            char_pos_adjusted_for_span = True
 
                     # span fully contained in other span
                     elif other_span.start_char <= span.start_char and other_span.end_char >= span.end_char:
-                        other_span._.replace_text(other_span.text.replace(span.text, ''), keep_ws=True, deletion_threshold = 2)
+                        other_span._.replace_text(get_element_text(other_span, replace_text=True).replace(span.text, ''), keep_ws=True, deletion_threshold = 2)
                         if other_span._.deleted:
                             other_span._.added = True
-                            update_all_char_pos(other_span.start_char, -len(other_span.text))
+                            if not char_pos_adjusted_for_span:
+                                update_all_char_pos(other_span.start_char, -len(other_span.text))
+                                char_pos_adjusted_for_span = True
                         else:
-                            update_all_char_pos(other_span.start_char, -len(span.text))
-
+                            if not char_pos_adjusted_for_span:
+                                update_all_char_pos(span.start_char, -len(span.text))
+                                char_pos_adjusted_for_span = True
                     # span overlaps with other span
                     ## this should not happen as all article elements are non-partially-overlapping
             # replacement
@@ -285,19 +293,28 @@ def process_article_elements_modifications(article_elements, article_text, old_c
                         other_span._.replace_text(new_other_span_text, keep_ws=True, deletion_threshold = 2)
                         if other_span._.deleted:
                             other_span._.added = True
-                            update_all_char_pos(other_span.start_char, -len(other_span.text))
+                            if not char_pos_adjusted_for_span:
+                                update_all_char_pos(other_span.start_char, -len(other_span.text))
+                                char_pos_adjusted_for_span = True
+
                         else:
                             # TODO does this work if the same span is replaced multiple times?
-                            update_all_char_pos(other_span.start_char, -len(get_element_text(span, replace_text=True)) + len(new_other_span_text))
+                            if not char_pos_adjusted_for_span:
+                                update_all_char_pos(other_span.start_char, -len(get_element_text(span, replace_text=True)) + len(new_other_span_text))
+                                char_pos_adjusted_for_span = True
                     # span fully contained in other span
                     elif other_span.start_char <= span.start_char and other_span.end_char >= span.end_char:
                         # replace text in other span
                         other_span._.replace_text(other_span.text.replace(span.text, get_element_text(span, replace_text=True)), keep_ws=True, deletion_threshold = 2)
                         if other_span._.deleted:
                             other_span._.added = True
-                            update_all_char_pos(other_span.start_char, -len(other_span.text))
+                            if not char_pos_adjusted_for_span:
+                                update_all_char_pos(other_span.start_char, -len(other_span.text))
+                                char_pos_adjusted_for_span = True
                         else:
-                            update_all_char_pos(span.start_char, len(get_element_text(span, replace_text=True)) - len(span.text))
+                            if not char_pos_adjusted_for_span:
+                                update_all_char_pos(span.start_char, len(get_element_text(span, replace_text=True)) - len(span.text))
+                                char_pos_adjusted_for_span = True
             # addition
             elif span.has_extension('new_element') and span._.new_element:
                 # check if the element type is below the paragraph level
@@ -307,10 +324,7 @@ def process_article_elements_modifications(article_elements, article_text, old_c
                         if span._.char_pos >= par.start_char and span._.char_pos <= par.end_char:
                             new_par_text = get_element_text(par, replace_text=True)[:span._.char_pos - par.start_char] + get_element_text(span, replace_text=True) + get_element_text(par, replace_text=True)[span._.char_pos - par.start_char:]
                             par._.replace_text(new_par_text, keep_ws=True, deletion_threshold = 2)
-
-
-
-
+                            update_all_char_pos(span._.char_pos, len(get_element_text(span, replace_text=True)))
     # build the new text from the processed paragraph spans and adding the text in between
     new_text = ""
 

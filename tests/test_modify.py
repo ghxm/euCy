@@ -158,14 +158,18 @@ def test_article_element_modification_mix():
 
         # add a paragraph
         article._.add_article_element ('This is a test.', article=0, paragraph=0)
+        # add another paragraph
+        article._.add_article_element ('This is a test paragraph.', article=0, paragraph='end')
         # add another one
         article._.add_article_element ('This is a test, too.', article=0, paragraph='end')
+
         # replace a point
         modify.replace_text(article._.article_elements[0]['points'][0][0][0], 'a) This is a replaced test.')
         # add a point
         article._.add_article_element ('c) This is a test.', article=0, paragraph=0, subparagraph=0, point='end')
         # delete a point
         article._.article_elements[0]['points'][0][0][1]._.delete()
+
 
         modified_text, modified_article_elements = modify.article_elements.process_article_elements_modifications(article._.article_elements[0], article_text, old_char_offset=0, new_char_offset=100)
 
@@ -178,8 +182,9 @@ def test_article_element_modification_mix():
 
         assert (modified_text == article_text[:13] +
                 '\n\nThis is a test.\n\n' + article_text[13:122] +
-                'a) This is a replaced test.\n\n' + # article_text[159:] +
-                'c) This is a test.\n\n' +
+                'a) This is a replaced test.\n\n\n\n' + # article_text[159:] +
+                'c) This is a test.\n\n\n\n' +
+                'This is a test paragraph.\n\n\n\n' +
                 'This is a test, too.' +
                 end_new_chars)
 
