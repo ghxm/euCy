@@ -334,7 +334,7 @@ def articles(doc_articles):
 
                 break
 
-            if len(article_nums) > 1:
+            if len(article_nums) > 0:
                 article_numstr = article_nums[0].strip()
             else:
                 article_numstr = None
@@ -417,14 +417,31 @@ def paragraphs(article):
         for i, a in enumerate(par_list):
             par_list[i]._.element_type = "art_par"
 
-    # if no paragraphs found, set article as par
+    # if no paragraphs found, set article as par but try to exclude the article title
     if len(par_list) == 0 and len(article.text.strip()) > 1:
-        if isinstance(article, Doc):
-            article = article.char_span(0,
+
+        # try to exclude the article title
+        if article.has_extension("element_numstr") and article._.element_numstr is not None:
+            article_par = article[utils.char_to_token(
+                article.text.find(article._.element_numstr) + len(article._.element_numstr),
+                par_char_token):utils.char_to_token(
+                    len(article.text), par_char_token, alignment_mode="expand")]
+        else:
+            # count beginning ws chars
+            ws_chars = len(article.text) - len(re.sub(r'^\s*', '', article.text))
+
+            article_par = article.char_span(ws_chars + len('article 123'), len(article.text), alignment_mode="contract")
+
+
+        # check if it worked
+        if len(article_par.text.strip()) < len(article.text.strip()):
+            pass
+        else:
+            article_par = article.char_span(0,
                                         len(article.text),
                                         alignment_mode="expand")
-        set_element_extensions(article)
-        par_list.append(article)
+        set_element_extensions(article_par)
+        par_list.append(article_par)
         if Span.has_extension("element_type"):
             for i, a in enumerate(par_list):
                 par_list[i]._.element_type = "art_par"
