@@ -200,12 +200,43 @@ def _add_article_element(doc,
                          point=None,
                          auto_position = True,
                          add_ws=True):
-    """Setter for the add_element extension. Should not be used directly."""
+    """Setter for the add_element extension. Should not be used directly.
+
+    Parameters
+    ----------
+    doc (Doc):
+        The doc object to be modified
+    new_text (str):
+        The text to be added
+    article (int):
+        The original(!) article number
+    paragraph (int or str):
+        The paragraph number or 'start' or 'end'
+    subparagraph (int or str):
+        The subparagraph number or 'start' or 'end'
+    indent (int or str):
+        The indent number or 'start' or 'end'
+    point (int or str):
+        The point number or 'start' or 'end'
+    auto_position (bool):
+        If True, the element will be inserted at the start or end of the span group if the specified position is not available
+    add_ws (bool):
+        If True, add whitespace before and after the new element
+
+    Returns
+    -------
+    None
+
+
+    """
 
     assert isinstance(article, int), "article must be an integer"
     assert any([paragraph is not None, subparagraph is not None, indent is not None, point is not None]), "at least one of paragraph, subparagraph, indent or point must be specified"
 
-    article_elements = doc._.article_elements[article]
+    try:
+        article_elements = doc._.article_elements[article]
+    except:
+        raise ValueError("article must be an integer inside the range of the article list")
 
     #if subparagraph and not paragraph:
     #    raise ValueError("paragraph must be specified if subparagraph is specified")
@@ -1365,3 +1396,44 @@ def set_element_extensions(span):
 
     if not span.has_extension("element_numstr"):
         span.set_extension("element_numstr", default=None)
+
+
+def new_start_char_span(span, doc, new_start_char=None):
+    """Returns a new span with the same attributes for a given doc that employs the new start char of the span
+
+    Parameters
+    ----------
+    span (Span):
+        The span to be replaced
+    doc (Doc):
+        The reference doc
+    new_start_char (int):
+        The new start char of the span. If None, the span's `_.new_start_char` attribute is used.
+
+    Returns
+    -------
+    span (Span):
+        The new span with the new start char
+
+    """
+
+    assert isinstance(span, Span), "span must be a spacy Span object"
+    assert isinstance(doc, Doc), "doc must be a spacy Doc object"
+
+    if new_start_char is None:
+        new_start_char = span._.new_start_char
+
+    new_span = doc.char_span(new_start_char,
+                             span._.new_end_char,
+                             alignment_mode='expand',
+                             label=span.label_)
+
+    # copy extension attributes
+    for attr in dir(span._):
+        if span.has_extension(attr):
+            if new_span.has_extension(attr):
+                new_span._.set(attr, span._.get(attr))
+
+    return new_span
+
+

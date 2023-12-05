@@ -39,6 +39,16 @@ def any_modified_article_elements(article_elements):
 
     return any([is_modified_span(span) for span in spans])
 
+def get_modified_article_elements(article_elements):
+
+    """
+    Get all modified article elements in the list of article elements.
+    """
+
+    spans = get_article_element_spans(article_elements)
+
+    return [span for span in spans if is_modified_span(span)]
+
 
 def recalculate_article_elements (article, article_offset = 0):
 
@@ -95,7 +105,7 @@ def recalculate_article_elements (article, article_offset = 0):
             article_es['pars'].append(par)
 
             # paragraph subelements
-            par_es = reclaculate_paragraph_subelements(par, par_offset = par._.new_start_char)
+            par_es = recalculate_paragraph_subelements(par, par_offset = par._.new_start_char)
 
             article_es['subpars'].append(par_es['subpars'])
             article_es['points'].append(par_es['points'])
@@ -110,7 +120,7 @@ def recalculate_article_elements (article, article_offset = 0):
         return article_es
 
 
-def reclaculate_paragraph_subelements (par, par_offset = 0):
+def recalculate_paragraph_subelements (par, par_offset = 0):
 
     """
     Get the subpar, indent and point spans of a paragraph and return them as a dictionary.
@@ -262,6 +272,7 @@ def process_article_elements_modifications(article_elements, article_text, old_c
                         if other_span._.deleted:
                             other_span._.added = True
                             if not char_pos_adjusted_for_span:
+                                # TODO does this need to be len(span.text) or len(get_element_text(span, replace_text=True))? (same below)
                                 update_all_char_pos(other_span.start_char, -len(other_span.text))
                                 char_pos_adjusted_for_span = True
                         else:
@@ -305,10 +316,11 @@ def process_article_elements_modifications(article_elements, article_text, old_c
                     # span fully contained in other span
                     elif other_span.start_char <= span.start_char and other_span.end_char >= span.end_char:
                         # replace text in other span
-                        other_span._.replace_text(other_span.text.replace(span.text, get_element_text(span, replace_text=True)), keep_ws=True, deletion_threshold = 2)
+                        other_span._.replace_text(get_element_text(other_span, replace_text=True).replace(span.text, get_element_text(span, replace_text=True)), keep_ws=True, deletion_threshold = 2)
                         if other_span._.deleted:
                             other_span._.added = True
                             if not char_pos_adjusted_for_span:
+                                # TODO does this need to be len(span.text) or len(get_element_text(span, replace_text=True))? (see also above)
                                 update_all_char_pos(other_span.start_char, -len(other_span.text))
                                 char_pos_adjusted_for_span = True
                         else:
@@ -365,7 +377,7 @@ def process_article_elements_modifications(article_elements, article_text, old_c
 
             ## re-do paragraph-level spans (subpars, indents, points)
             new_article_elements['pars'].append(par)
-            par_article_elements = reclaculate_paragraph_subelements(get_element_text(par, replace_text=True), par_offset = par._.new_start_char)
+            par_article_elements = recalculate_paragraph_subelements(get_element_text(par, replace_text=True), par_offset = par._.new_start_char)
 
             ## update the new article elements
             new_article_elements['subpars'].append(par_article_elements['subpars'])
