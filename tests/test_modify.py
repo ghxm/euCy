@@ -3,6 +3,8 @@
 # pylint: disable=redefined-outer-name
 
 import random
+import re
+
 from eucy import modify
 from eucy import utils
 import spacy
@@ -140,8 +142,6 @@ def test_article_element_modification_addition():
     else:
         end_new_chars = ''
 
-    # TODO fix this test (adjust char_pos updating)
-
     assert modified_text == article_text[:13] + '\n\nThis is a test.\n\n' + article_text[13:159] + '\n\naa) This is a test.\n\n' + article_text[159:-2] + end_new_chars
 
 def test_article_element_modification_mix():
@@ -231,6 +231,8 @@ def test_modify_doc_replacement(eudoc):
     for span_type in to_test:
         if len(eudoc.spans[span_type]) > threshold:
 
+            print(random_span_is[span_type])
+
             assert eudoc_mod.spans[span_type][random_span_is[span_type]].text.strip(
             ) == 'This is a test.', 'modify_doc() did not replace the text of a random {}.'.format(
                 span_type.title())
@@ -302,12 +304,31 @@ def test_modify_doc_addition(eudoc):
 def test_modify_doc_mix(eudoc):
     """Test modify.modify_doc() for a mix of modifications."""
 
+    def get_modified_index(original_index, part):
+
+        modified_index = original_index
+        for operation in ['addition']:
+            for index in modifications[operation][part]:
+                if index <= original_index:
+                    if operation == 'addition':
+                        modified_index += 1
+        return modified_index
+
     modification_operations = ['addition', 'deletion', 'replacement']
     parts = ['citations', 'recitals', 'articles']
+
+
+    original_part_n = {part: len(eudoc.spans[part]) for part in parts}
 
     modifications = {
         op: {part: []
              for part in parts}
+        for op in modification_operations
+    }
+
+    modifications_paragraphs = {
+        op: {article_i: []
+            for article_i in range(len(eudoc._.article_elements))}
         for op in modification_operations
     }
 
@@ -319,9 +340,13 @@ def test_modify_doc_mix(eudoc):
                 # randomly decide whether to modify this part
                 if random.random() > 0.2:
                     if modop == 'addition':
+
+                        r = random.choice(range(original_part_n[part])) if original_part_n[part] > 0 else 0
+
+                        r = get_modified_index(r, part)
+
                         modifications[modop][part] = [
-                            random.choice(range(len(eudoc.spans[part])))
-                            if len(eudoc.spans[part]) > 0 else 0
+                            r
                         ]
                         eudoc._.add_element(
                             'This is a test.',
@@ -337,12 +362,17 @@ def test_modify_doc_mix(eudoc):
                                 len(eudoc.spans[part]) - 1)
 
                     elif modop == 'deletion':
-
                         # make sure random deletion is not the in the added elements
                         t_r_i = 0
                         r = None
                         while True and len(eudoc.spans[part]) > 0:
-                            r = random.choice(range(len(eudoc.spans[part])))
+                            r = random.choice(range(original_part_n[part])) if original_part_n[part] > 0 else None
+
+                            if r is None:
+                                break
+
+                            r = get_modified_index(r, part)
+
                             if r not in modifications['addition'][
                                     part] and r not in modifications[
                                         'deletion'][part]:
@@ -367,8 +397,10 @@ def test_modify_doc_mix(eudoc):
                             t_r_i = 0
                             r = None
                             while True:
-                                r = random.choice(range(len(
-                                    eudoc.spans[part])))
+                                r = random.choice(range(original_part_n[part]))
+
+                                r = get_modified_index(r, part)
+
                                 if r not in modifications['addition'][
                                         part] and r not in modifications[
                                             'deletion'][part]:
@@ -388,7 +420,9 @@ def test_modify_doc_mix(eudoc):
                         t_r_i = 0
                         r = None
                         while True and len(eudoc.spans[part]) > 0:
-                            r = random.choice(range(len(eudoc.spans[part])))
+                            r = random.choice(range(original_part_n[part]))
+                            r = get_modified_index(r, part)
+
                             if r not in modifications['addition'][
                                     part] and r not in modifications[
                                         'deletion'][
@@ -408,16 +442,16 @@ def test_modify_doc_mix(eudoc):
                                 'This is a replaced test.')
 
                         # randomly replace 1 more
-                        while random.random() > 0.4 and len(
-                                eudoc.spans[part]) > len(
+                        while random.random() > 0.4 and original_part_n[part] > len(
                                     modifications['addition'][part] +
                                     modifications['deletion'][part] +
                                     modifications['replacement'][part]):
 
                             t_r_i = 0
                             while True:
-                                r = random.choice(range(len(
-                                    eudoc.spans[part])))
+                                r = random.choice(range(original_part_n[part]))
+                                r = get_modified_index(r, part)
+
                                 if r not in modifications['addition'][
                                         part] and r not in modifications[
                                             'deletion'][
@@ -435,11 +469,49 @@ def test_modify_doc_mix(eudoc):
                                 eudoc.spans[part][r] = modify.replace_text(
                                     eudoc.spans[part][r],
                                     'This is a replaced test.')
+    for modop in modification_operations:
+        # paragraphs
+        for article_i in modifications_paragraphs[modop].keys():
+            if get_modified_index(article_i, 'articles') in modifications['deletion']['articles'] or get_modified_index(
+                article_i, 'articles') in modifications['replacement']['articles'] or get_modified_index(article_i,
+                                                                                                         'articles') in \
+                modifications['addition']['articles']:
+                # skip if article was deleted, replaced or added
+                continue
+            # make sure articles were not deleted or replaced already
+            if random.random() > 0.2:
+                if modop == 'addition':
+                    # add a paragraph to the end of the article
+                    eudoc._.add_article_element(
+                        'This is an article element addition test.',
+                        article=article_i,
+                        paragraph='end'
+                    )
+
+                    modifications_paragraphs[modop][article_i].append(len(eudoc._.article_elements[article_i]['pars'])-1)
+
+                    # randomly add a couple more
+                    while random.random() > 0.6:
+                        eudoc._.add_article_element('This is an article element addition test.',
+                                                    article=article_i,
+                                                    paragraph='end')
+                        modifications_paragraphs[modop][article_i].append(
+                            len(eudoc._.article_elements[article_i]['pars']) - 1)
+
+                elif modop == 'replacement':
+                    # TODO
+                    pass
+
+                elif modop == 'deletion':
+                    # TODO
+                    pass
 
     eudoc_mod = modify.modify_doc(eudoc)
 
     # print the modifications
+    print('\n')
     print(modifications)
+    print(modifications_paragraphs)
 
     # check
     for part in parts:
@@ -466,5 +538,22 @@ def test_modify_doc_mix(eudoc):
             if s.text.strip() == 'This is a replaced test.'
         ]) == len(
             modifications['replacement'][part]
-        ), 'modify_doc() did not replace the correct number of {} to the count.'.format(
+        ), 'modify_doc() did not replace the correct number of {}.'.format(
             part.title())
+
+    # check article element modifications
+    for article_i in range(len(eudoc._.article_elements)):
+        if get_modified_index(article_i, 'articles') in modifications['deletion']['articles'] or  get_modified_index(article_i, 'articles')  in modifications['replacement']['articles'] or  get_modified_index(article_i, 'articles')  in modifications['addition']['articles']:
+            # skip if article was deleted, replaced or added
+            continue
+        # TODO (after implementation of article element recovery) check that each article has the right number of elements
+        #assert len(eudoc_mod._.article_elements[article_i]['pars']) == len(eudoc._.article_elements[article_i]['pars']) + len(modifications_paragraphs['addition'][article_i]) - len(modifications_paragraphs['deletion'][article_i]), 'modify_doc() did not end up the correct number of paragraphs after modification.'
+
+    print('')
+
+    # check that article has the right number of 'This is an article element addition test.' (additions) elements
+    assert sum([
+        s.text.count('This is an article element addition test.') for s in eudoc_mod.spans['articles']
+    ]) == len(
+        utils.flatten([v for k, v in modifications_paragraphs['addition'].items()])
+    ), 'modify_doc() did not add the correct number of paragraphs to the count.'

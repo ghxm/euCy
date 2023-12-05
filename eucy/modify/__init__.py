@@ -1,9 +1,11 @@
 import spacy
+import warnings
 from spacy.tokens import Doc, Span, SpanGroup
 
 from eucy.utils import set_extensions, determine_span_group_order, get_element_text, is_modified_span
 from eucy.modify.article_elements import process_article_elements_modifications, any_modified_article_elements, recalculate_article_elements, adjust_article_element_offsets
 
+from eucy.elements import article_elements_dict
 
 def add_element(doc, new_text, element_type=None, position='end', article=None, paragraph = None, subparagraph = None, indent = None, point = None, add_ws=True):
     """Adds new text to a doc/span object and returns the object with the new text in the ._.add_text attribute
@@ -149,11 +151,8 @@ def modify_doc(doc,
 
     assert isinstance(doc, Doc), 'doc must be a spaCy Doc'
 
-    if nlp is None:
-        if eu_wrapper:
-            nlp = eu_wrapper.nlp
-        else:
-            nlp = spacy.blank("en")
+    if not nlp:
+        nlp = spacy.blank("en")
 
     new_text = ''
     old_text = doc.text
@@ -200,7 +199,7 @@ def modify_doc(doc,
     }  # sort by start char of first span if not a new element (add len of doc so that there's no exception in case of empty group)
 
 
-    old_new_article_elements = []
+    # old_new_article_elements = []
 
     # create new text
     for k, spangroup in old_spans.items():
@@ -252,9 +251,9 @@ def modify_doc(doc,
 
                 span._.new_start_char = len(new_text)
 
-                if k == 'articles':
-                    # create article elements for new article
-                    old_new_article_elements.append(recalculate_article_elements(get_element_text(span, replace_text=True), article_offset=len(new_text)))
+                # if k == 'articles':
+                #     # create article elements for new article
+                #     old_new_article_elements.append(recalculate_article_elements(get_element_text(span, replace_text=True), article_offset=len(new_text)))
 
                 # check for replacement text (keep_ws = True in delete())
                 if span.has_extension(
@@ -277,6 +276,10 @@ def modify_doc(doc,
                 new_article_elements = None
 
                 if k == 'articles' and doc.has_extension('article_elements') and any_modified_article_elements(doc._.article_elements[element_i]):
+
+                    if is_modified_span(span):
+                        warnings.warn("Article {} is modified and has modified article elements. This is not supported. The replacement for the article elements will be used.".format(span._.element_numstr))
+
                     replacement_text, new_article_elements = process_article_elements_modifications(doc._.article_elements[element_i], article_text = span.text_with_ws, new_char_offset = len(new_text), old_char_offset = span.start_char)
                 else:
                     # Replacement
@@ -284,14 +287,14 @@ def modify_doc(doc,
                     replacement_text = span._.replacement_text if span.has_extension(
                         'replacement_text'
                     ) and span._.replacement_text is not None else span.text_with_ws
-                if new_article_elements is not None:
-                    # adjust article elements spans (if replaced and if no mod)
-                    if is_modified_span(span):
-                        new_article_elements = recalculate_article_elements(get_element_text(span, replace_text=True), article_offset=len(new_text))
-                    else:
-                        new_article_elements = adjust_article_element_offsets(span._.article_elements, old_offset=span.start_char, new_offset=len(new_text))
+                # if new_article_elements is not None:
+                #     # adjust article elements spans (if replaced and if no mod)
+                #     if is_modified_span(span):
+                #         new_article_elements = recalculate_article_elements(get_element_text(span, replace_text=True), article_offset=len(new_text))
+                #     else:
+                #         new_article_elements = adjust_article_element_offsets(doc._.article_elements[element_i], old_offset=span.start_char, new_offset=len(new_text))
 
-                old_new_article_elements.append(new_article_elements)
+                # old_new_article_elements.append(new_article_elements)
             else:
                 # Replacement
                 # get replacement text
@@ -309,8 +312,6 @@ def modify_doc(doc,
 
             element_i += 1
 
-            # TODO adjust article elements spans (if untouched or if replaced or if ae level change)
-            #  make sure we add them only once
 
     # add remaining text
     new_text += old_text[old_text_char_i:]
@@ -341,9 +342,17 @@ def modify_doc(doc,
                 new_doc.spans[sk].append(
                     old_new_span._.replacement_span(new_doc))
 
-    # TODO recover article elements
-    #  how to account for changed order / inserted articles -> have separate new_article_elements
-    #  + changed articles? -> recompute article elements from scratch?)
+    # make sure all spangroups are present
+    for sk in doc.spans.keys():
+        if sk not in new_doc.spans.keys():
+            new_doc.spans[sk] = SpanGroup(new_doc, name=sk)
+
+    # recover article elements
+    #  using new_old_article_elements
+    new_doc._.article_elements = []
+    for article in new_doc.spans['articles']:
+        new_doc._.article_elements.append(article_elements_dict(article))
+
 
     # recover _.parts
     if not doc.has_extension('parts'):
@@ -434,10 +443,8 @@ def modify_doc(doc,
     new_doc._.parts = new_parts
 
     # re-run eu-wrapper to get complexity and other metadata
-    if eu_wrapper is None:
+    if not eu_wrapper:
         from eucy.eucy import EuWrapper
-
-        nlp = spacy.blank("en")
         eu_wrapper = EuWrapper(nlp)
 
     new_doc = eu_wrapper(new_doc)
