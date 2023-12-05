@@ -119,24 +119,14 @@ class EuWrapper:
 
 def citation_count(doc):
 
-    if not 'citations' in doc.spans:
-        # if function is called outside spacy pipeline
-
-        EuDoc = EuWrapper
-
-        doc = EuDoc(doc)
+    assert 'citations' in doc.spans.keys(), "doc has no 'citations' span"
 
     return (len(doc.spans['citations']))
 
 
 def recital_count(doc):
 
-    if not 'recitals' in doc.spans:
-        # if function is called outside spacy pipeline
-
-        EuDoc = EuWrapper
-
-        doc = EuDoc(doc)
+    assert 'recitals' in doc.spans.keys(), "doc has no 'recitals' span"
 
     return (len(doc.spans['recitals']))
 
@@ -150,13 +140,8 @@ def count_articles():
 
 
 def matched_articles_count(doc):
-    if not doc.has_extension("parts") or not doc.has_extension(
-            "article_elements"):
-        # if function is called outside spacy pipeline
 
-        EuDoc = EuWrapper
-
-        doc = EuDoc(doc)
+    assert 'articles' in doc.spans.keys(), "doc has no 'articles' span"
 
     return (len(doc.spans['articles']))
 
@@ -165,26 +150,13 @@ def last_matched_article_num(doc):
 
     raise NotImplementedError
 
-    if not doc.has_extension("parts") or not doc.has_extension(
-            "article_elements"):
-        # if function is called outside spacy pipeline
-
-        EuDoc = EuWrapper
-
-        doc = EuDoc(doc)
 
     # @TODO (see older analysis)
     pass
 
 
 def article_count(doc):
-    if not doc.has_extension("parts") or not doc.has_extension(
-            "article_elements"):
-        # if function is called outside spacy pipeline
 
-        EuDoc = EuWrapper
-
-        doc = EuDoc(doc)
 
     # @TODO methods in older analysis
     ## using distance measures
@@ -194,13 +166,8 @@ def article_count(doc):
 
 def structural_size(doc, parts="all"):
 
-    if not doc.has_extension("parts") or not doc.has_extension(
-            "article_elements"):
-        # if function is called outside spacy pipeline
-
-        EuDoc = EuWrapper
-
-        doc = EuDoc(doc)
+    assert doc.has_extension("parts") and doc.has_extension(
+        "article_elements"), "doc has no 'parts' or 'article_elements' extension"
 
     enacting_size = 0
 
@@ -225,13 +192,8 @@ def structural_size(doc, parts="all"):
 
 def avg_depth(doc, basis="element"):
 
-    if not doc.has_extension("parts") or not doc.has_extension(
-            "article_elements"):
-        # if function is called outside spacy pipeline
-
-        EuDoc = EuWrapper
-
-        doc = EuDoc(doc)
+    assert doc.has_extension("parts") and doc.has_extension(
+        "article_elements"), "doc has no 'parts' or 'article_elements' extension"
 
     depths = {1: 0, 2: 0, 3: 0}
 
@@ -291,13 +253,9 @@ def avg_depth(doc, basis="element"):
 
 def reference_count(doc):
 
-    if not doc.has_extension("parts") or not doc.has_extension(
-            "article_elements"):
-        # if function is called outside spacy pipeline
+    assert doc.has_extension("parts") and doc.has_extension(
+        "article_elements"), "doc does not appear to be a EuDoc object. Did you run it through a euWrapper object?"
 
-        EuDoc = EuWrapper
-
-        doc = EuDoc(doc)
 
     ref_count = Counter()
     ref_count['internal'] = 0
@@ -312,12 +270,8 @@ def reference_count(doc):
 
 
 def word_count(doc, annex=False):
-    if not doc.has_extension("parts"):
-        # if function is called outside spacy pipeline
 
-        EuDoc = EuWrapper
-
-        doc = EuDoc(doc)
+    assert doc.has_extension("parts"), "doc does not have 'parts' extension"
 
     word_count = sum([len(r) for r in doc.spans['recitals']]) + sum([
         len(c) for c in doc.spans['citations']

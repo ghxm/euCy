@@ -60,7 +60,7 @@ class Elements:
         doc._.article_elements = []
 
         for article in doc.spans['articles']:
-            doc._.article_elements.append(article_elements(article))
+            doc._.article_elements.append(article_elements_dict(article))
 
         return doc
 
@@ -611,8 +611,19 @@ def indents(subpar):
     return indent_list
 
 
-def article_elements(doc_article):
+def article_elements_dict(doc_article):
     """Mark up an article, inlcuding Title, Paragraph, Point, etc...
+
+    Parameters
+    ----------
+    doc_article
+        A spaCy Doc or Span object containing the article text.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the article elements as spaCy Span objects.
+
     """
 
     if not isinstance(doc_article, (Doc, Span)):
