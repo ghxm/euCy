@@ -188,6 +188,10 @@ def modify_doc(doc,
 
     old_text_char_i = 0
 
+    sg_without_new_elements = lambda x: [
+        s for s in doc.spans[x] if not s._.new_element
+    ]
+
     # sort old_spans keys by start char of first span
     old_spans = {
         ke: va
@@ -195,8 +199,10 @@ def modify_doc(doc,
             old_spans.items(),
             key=lambda item: min(
                 [s.start_char for s in item[1]
-                 if not s._.new_element] + [len(doc.text)]))
-    }  # sort by start char of first span if not a new element (add len of doc so that there's no exception in case of empty group)
+                 if not s._.new_element] if len(sg_without_new_elements(item[0]))>0 else [s._.char_pos for s in item[1]] + [len(doc.text)]))
+    }  # sort by start char of first span
+       # if not a new element (add len of doc so that there's no exception in case of empty group)
+       # if there's only new elements, use that instead
 
 
     # old_new_article_elements = []
@@ -248,6 +254,12 @@ def modify_doc(doc,
 
                 # move old text char index
                 old_text_char_i = span._.char_pos
+
+                # if we're dealing with citations/recitals there may be no-existing elements
+                #  so we need to check for that and add the text introducing the elements
+                if span_i == 0 and k in ['citations', 'recitals'] and len([s for s in doc.spans[k] if not s._.new_element]) == 0:
+                    if k == 'recitals' and not get_element_text(span, replace_text=True).lower().strip().startswith('whereas'):
+                        new_text += 'Whereas:\n\n'
 
                 span._.new_start_char = len(new_text)
 
