@@ -376,11 +376,11 @@ def modify_doc(doc,
 
     ## for each part in the old doc, get the distances between the part start/end and the first/last element
     for part_name in part_names:
-        part = doc._.parts.get(part_name)
-
-        if part is None:
-            new_parts[part_name] = None
-            continue
+        # part = [s for s in doc._.parts.get(part_name) if s._.new_start_char is not None and s._.new_end_char is not None]
+        #
+        # if part is None:
+        #     new_parts[part_name] = None
+        #     continue
 
         if part_name == 'citations':
             element_name = 'citations'
@@ -396,35 +396,13 @@ def modify_doc(doc,
             new_parts[part_name] = None
             continue
 
-        # get part start and end from old doc
-        part_start_char = doc._.parts[part_name].start_char
-        part_end_char = doc._.parts[part_name].end_char
-
         # get first element start and last element end of the new doc
         first_element_start_char = new_doc.spans[element_name][0].start_char
         last_element_end_char = new_doc.spans[element_name][-1].end_char
 
-        # get distances between part start/end and first/last element
-        first_element_dist = first_element_start_char - part_start_char
-        last_element_dist = part_end_char - last_element_end_char
-
-        # get new part start and end
-        try:
-            new_part_start_char = new_doc.spans[element_name][
-                0].start_char - first_element_dist
-            new_part_end_char = new_doc.spans[element_name][
-                -1].end_char + last_element_dist
-        except IndexError:
-            new_part_start_char = None
-            new_part_end_char = None
-
-        if new_part_start_char is None or new_part_end_char is None:
-            new_parts[part_name] = None
-            continue
-
         # get new part
-        new_part = new_doc.char_span(new_part_start_char,
-                                     new_part_end_char,
+        new_part = new_doc.char_span(first_element_start_char,
+                                     last_element_end_char,
                                      alignment_mode='expand')
 
         # add new part to new doc
@@ -435,10 +413,8 @@ def modify_doc(doc,
     if doc._.parts['annex'] is None:
         new_parts['annex'] = None
     else:
-        ## distance between enacting end and annex start
-        enacting_end_char = doc._.parts['enacting'].end_char
-        annex_start_char = doc._.parts['annex'].start_char
-        annex_dist = annex_start_char - enacting_end_char
+        ## get distance between enacting and annex
+        annex_dist = doc._.parts['enacting'].end_char - doc._.parts['annex'].start_char
 
         ## get new annex start and end
         new_annex_start_char = new_parts['enacting'].end_char + annex_dist
