@@ -332,6 +332,8 @@ def test_modify_doc_mix(eudoc):
         for op in modification_operations
     }
 
+    deleted_paragraph_strings = []
+
     for modop in modification_operations:
 
         # randomly decide whether to do this operation
@@ -365,7 +367,7 @@ def test_modify_doc_mix(eudoc):
                         # make sure random deletion is not the in the added elements
                         t_r_i = 0
                         r = None
-                        while True and len(eudoc.spans[part]) > 0:
+                        while True and original_part_n[part] > 0:
                             r = random.choice(range(original_part_n[part])) if original_part_n[part] > 0 else None
 
                             if r is None:
@@ -419,7 +421,7 @@ def test_modify_doc_mix(eudoc):
                     elif modop == 'replacement':
                         t_r_i = 0
                         r = None
-                        while True and len(eudoc.spans[part]) > 0:
+                        while True and original_part_n[part] > 0:
                             r = random.choice(range(original_part_n[part]))
                             r = get_modified_index(r, part)
 
@@ -499,12 +501,66 @@ def test_modify_doc_mix(eudoc):
                             len(eudoc._.article_elements[article_i]['pars']) - 1)
 
                 elif modop == 'replacement':
-                    # TODO
-                    pass
+
+                    if len(modifications_paragraphs['deletion'][article_i]) >= len(eudoc._.article_elements[article_i]['pars']):
+                        # skip if all paragraphs were deleted
+                        continue
+
+                    r_par = None
+
+                    max_tries = 5
+                    tries = 0
+
+                    while r_par is None or (r_par._.new_element or r_par._.deleted or r_par._.replacement_text):
+
+                        if tries > max_tries:
+                            r_par = None
+                            break
+
+                        tries += 1
+
+                        # choose a random paragraph in the article
+                        r = random.choice(range(len(eudoc._.article_elements[article_i]['pars'])))
+                        r_par = eudoc._.article_elements[article_i]['pars'][r]
+
+                    if r_par is None:
+                        continue
+
+                    r_par._.replace_text('This is an article element replacement test.')
+
+                    modifications_paragraphs[modop][article_i].append(r)
 
                 elif modop == 'deletion':
-                    # TODO
-                    pass
+
+                    if len(modifications_paragraphs['deletion'][article_i]) >= len(
+                        eudoc._.article_elements[article_i]['pars']):
+                        # skip if all paragraphs were deleted
+                        continue
+
+                    r_par = None
+
+                    max_tries = 5
+                    tries = 0
+
+                    while r_par is None or (r_par._.new_element or r_par._.deleted or r_par._.replacement_text):
+
+                        if tries > max_tries:
+                            r_par = None
+                            break
+
+                        tries += 1
+
+                        # choose a random paragraph in the article
+                        r = random.choice(range(len(eudoc._.article_elements[article_i]['pars'])))
+                        r_par = eudoc._.article_elements[article_i]['pars'][r]
+
+                    if r_par is None:
+                        continue
+
+                    r_par._.delete()
+                    deleted_paragraph_strings.append(r_par.text)
+
+                    modifications_paragraphs[modop][article_i].append(r)
 
     eudoc_mod = modify.modify_doc(eudoc)
 
@@ -542,18 +598,37 @@ def test_modify_doc_mix(eudoc):
             part.title())
 
     # check article element modifications
-    for article_i in range(len(eudoc._.article_elements)):
-        if get_modified_index(article_i, 'articles') in modifications['deletion']['articles'] or  get_modified_index(article_i, 'articles')  in modifications['replacement']['articles'] or  get_modified_index(article_i, 'articles')  in modifications['addition']['articles']:
-            # skip if article was deleted, replaced or added
-            continue
-        # TODO (after implementation of article element recovery) check that each article has the right number of elements
-        #assert len(eudoc_mod._.article_elements[article_i]['pars']) == len(eudoc._.article_elements[article_i]['pars']) + len(modifications_paragraphs['addition'][article_i]) - len(modifications_paragraphs['deletion'][article_i]), 'modify_doc() did not end up the correct number of paragraphs after modification.'
 
-    print('')
+    # TODO (after implementation of article element recovery) check that each article has the right number of elements
 
-    # check that article has the right number of 'This is an article element addition test.' (additions) elements
+    # check that the overall doc has the right number of 'This is an article element addition test.' (additions) elements
+    # TODO check on article basis
     assert sum([
         s.text.count('This is an article element addition test.') for s in eudoc_mod.spans['articles']
     ]) == len(
         utils.flatten([v for k, v in modifications_paragraphs['addition'].items()])
     ), 'modify_doc() did not add the correct number of paragraphs to the count.'
+
+    # check that the overall doc has the right number of 'This is an article element replacement test.' (replacements) elements
+    # TODO check on article basis
+    for article_i in range(len(eudoc._.article_elements)):
+        assert sum([
+            s.text.count('This is an article element replacement test.') for s in eudoc_mod.spans['articles']
+        ]) == len(
+            utils.flatten([v for k, v in modifications_paragraphs['replacement'].items()])
+        ), 'modify_doc() did not replace the correct number of paragraphs.'
+
+    if sum([
+        0 if eudoc_mod._.parts['enacting'] is None else eudoc_mod._.parts['enacting'].text.count(s.strip())
+        for s in deleted_paragraph_strings
+    ]) > 0:
+        print('Deleted paragraphs:')
+        for s in deleted_paragraph_strings:
+            print(s)
+
+    # check that the overall doc does not contain the deleted paragraphs
+    # TODO check on article basis
+    assert sum([
+        0 if eudoc_mod._.parts['enacting'] is None else eudoc_mod._.parts['enacting'].text.count(s.strip())
+        for s in deleted_paragraph_strings
+    ]) == 0, 'modify_doc() did not delete the correct number of paragraphs.'
