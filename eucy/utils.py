@@ -241,36 +241,39 @@ def _add_article_element(doc,
     #if subparagraph and not paragraph:
     #    raise ValueError("paragraph must be specified if subparagraph is specified")
 
-    if paragraph and not ((isinstance(paragraph, int) and paragraph in range(len(article_elements['pars']))) or paragraph in ['start', 'end']):
+    if paragraph is not None and not ((isinstance(paragraph, int) and paragraph in range(len(article_elements['pars']))) or paragraph in ['start', 'end']):
         if auto_position and isinstance(paragraph, int):
             paragraph = _auto_position(paragraph, len(article_elements['pars']), return_int=True)
         else:
             raise ValueError("paragraph must be an integer inside the range of the paragraph list")
-    elif paragraph and paragraph in ['start', 'end']:
+    elif paragraph is not None and paragraph in ['start', 'end']:
         paragraph = _auto_position(paragraph, len(article_elements['pars']), return_int=True)
 
-    if subparagraph and not ((isinstance(subparagraph, int) and subparagraph in range(len(article_elements['subpars'][paragraph]))) or subparagraph in ['start', 'end']):
+    if subparagraph is not None and not ((isinstance(subparagraph, int) and subparagraph in range(len(article_elements['subpars'][paragraph]))) or subparagraph in ['start', 'end']):
         if auto_position and isinstance(subparagraph, int):
             subparagraph = _auto_position(subparagraph, len(article_elements['subpars'][paragraph]), return_int=True)
         else:
             raise ValueError("subparagraph must be an integer inside the range of the subparagraph list")
-    elif subparagraph and subparagraph in ['start', 'end']:
+    elif subparagraph is not None and subparagraph in ['start', 'end']:
         subparagraph = _auto_position(subparagraph, len(article_elements['subpars'][paragraph]), return_int=True)
 
-    if indent and not ((isinstance(indent, int) and indent in range(len(article_elements['indents'][paragraph][subparagraph]))) or indent in ['start', 'end']):
+    if subparagraph is None:
+        subparagraph = 0
+
+    if indent is not None and not ((isinstance(indent, int) and indent in range(len(article_elements['indents'][paragraph][subparagraph]))) or indent in ['start', 'end']):
         if auto_position and isinstance(indent, int):
             indent = _auto_position(indent, len(article_elements['indents'][paragraph][subparagraph]), return_int=True)
         else:
             raise ValueError("indent must be an integer inside the range of the indent list")
-    elif indent and indent in ['start', 'end']:
+    elif indent is not None and indent in ['start', 'end']:
         indent = _auto_position(indent, len(article_elements['indents'][paragraph][subparagraph]), return_int=True)
 
-    if point and not ((isinstance(point, int) and point in range(len(article_elements['points'][paragraph][subparagraph]))) or point in ['start', 'end']):
+    if point is not None and not ((isinstance(point, int) and point in range(len(article_elements['points'][paragraph][subparagraph]))) or point in ['start', 'end']):
         if auto_position and isinstance(point, int):
             point = _auto_position(point, len(article_elements['points'][paragraph][subparagraph]), return_int=True)
         else:
             raise ValueError("point must be an integer inside the range of the point list")
-    elif point and point in ['start', 'end']:
+    elif point is not None and point in ['start', 'end']:
         point = _auto_position(point, len(article_elements['points'][paragraph][subparagraph]), return_int=True)
 
     new_span = _new_element_span(doc, new_text, add_ws=add_ws)
