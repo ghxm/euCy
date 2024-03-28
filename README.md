@@ -44,7 +44,7 @@ text = utils.text_from_html(html)
 # read in text
 doc = eu_wrapper(text)
 
-# get complexity stats
+# print complexity stats
 print(doc._.complexity)
 
 # get list of citations
