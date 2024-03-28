@@ -12,7 +12,7 @@ Tool to annotate EU legal text and compute some related measures based on spaCy.
 You can install the package from GitHub using pip:
 
 ```
-pip install git+https://github.com/ghxm/euCy.git
+pip install git+https://github.com/ghxm/euCy.git@dev
 ```
 
 
