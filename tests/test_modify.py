@@ -599,7 +599,7 @@ def test_modify_doc_mix(eudoc):
 
     # check article element modifications
 
-    # TODO (after implementation of article element recovery) check that each article has the right number of elements
+    # TODO check that each article has the right number of elements
 
     # check that the overall doc has the right number of 'This is an article element addition test.' (additions) elements
     # TODO check on article basis
