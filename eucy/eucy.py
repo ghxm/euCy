@@ -63,7 +63,7 @@ class EuWrapper:
         # Span.set_extension("parent_elements", default = None, getter = "") # @TODO assign function to check whether span is encased by other spans and return their attributes as dict in list
 
     @timeout(180)
-    def __call__(self, doc):
+    def __call__(self, doc, skip_reference_search=False):
         """
         Call EuCy wrapper on a spacy Doc object and add EU law specific attributes to the doc object. Add `SpanGroup` objects (`spans` attribute) and fills various custom extensions (`_` attribute) to the doc object.
 
@@ -98,7 +98,8 @@ class EuWrapper:
             if doc._.article_elements is None:
                 doc = self.EuElements(doc)
 
-            doc = self.EuReferenceSearch(doc)
+            if not skip_reference_search:
+                doc = self.EuReferenceSearch(doc)
             if doc._.complexity is None:
                 # get complexity measures
                 doc._.complexity = {
